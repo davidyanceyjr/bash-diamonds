@@ -82,7 +82,7 @@ For each input line:
 
 ## Emission Rules
 
--   If trimmed content length \> 0:
+-   If trimmed content length > 0:
     -   Emit trimmed bytes.
     -   If original line ended with `\n`, emit `\n`.
 -   If trimmed content length == 0:

@@ -46,6 +46,7 @@ typedef struct {
   size_t len;
 } dc_field_view_t;
 
+void dc_print_usage_trim(FILE *out);
 void dc_err_init(dc_error_t *err);
 void dc_err_set(dc_error_t *err, dc_err_code_t code, const char *fmt, ...);
 int dc_exit_code_from_error(const dc_error_t *err);
