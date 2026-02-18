@@ -184,3 +184,103 @@ run_lines() {
   [ "$status" -eq 0 ]
   [ "$output" = $'b' ]
 }
+
+# --------------------------
+# Additional CLI/contract tests
+# --------------------------
+
+@test "lines: --help prints usage to stdout, exit 0" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    lines --help
+  "
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ usage: ]]
+}
+
+@test "lines: missing SPEC => exit 2" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    lines >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "lines: unknown -x token before -- is usage error (exit 2)" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    printf 'a\n' | lines -x >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "lines: '-' in FILE list denotes stdin at that position" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    printf 'a\nb\n' | lines 1 -
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a' ]
+}
+
+@test "lines: '--' ends option parsing; -name after -- is treated as filename (missing => exit 2)" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    lines 1 -- -no_such_file >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "lines: '--' allows dash-leading filenames (existing file succeeds)" {
+  local dashfile="$TMPDIR/-dashfile"
+  printf 'z\n' >"$dashfile"
+
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    lines 1 -- '$dashfile'
+  "
+  [ "$status" -eq 0 ]
+  [ "$output" = $'z' ]
+}
+
+@test "lines: trailing comma is invalid (exit 2)" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    printf 'a\nb\n' | lines 1, >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "lines: double comma is invalid (exit 2)" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    printf 'a\nb\n' | lines 1,,2 >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "lines: whitespace around comma is allowed" {
+  run_lines "'1, 3'" $'a\nb\nc\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a\nc' ]
+}
+
+@test "lines: whitespace around .. is allowed (1 .. 2)" {
+  run_lines "'1 .. 2'" $'a\nb\nc\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a\nb' ]
+}
+
+@test "lines: whitespace around open-start .. is allowed (' .. 2 ')" {
+  run_lines "' .. 2 '" $'a\nb\nc\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a\nb' ]
+}
+
+@test "lines: file open error is runtime error (exit 2)" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    lines 1 no_such_file >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}

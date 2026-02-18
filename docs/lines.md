@@ -1,163 +1,149 @@
-# lines
+# `lines` --- Diamond Builtin Specification (Week 1)
+
+Select and emit specific 1-based input lines by numeric index or range.
+
+------------------------------------------------------------------------
+
+## Status (Week 1)
+
+Implemented and passing full test suite (`make test`).
+
+Load example:
+
+    enable -f ./build/lines.debug.so lines
+
+------------------------------------------------------------------------
 
 ## Synopsis
 
     lines SPEC [--] [FILE...]
     lines --help
 
-Select and emit specific 1-based input lines by numeric index or range.
-
 ------------------------------------------------------------------------
 
-## Description
+## Diamond Rules Compliance
 
-`lines` reads from stdin and/or one or more files and emits only the
-lines selected by `SPEC`.
-
-If multiple files are provided, they are logically concatenated into a
-single continuous input stream. Line numbering is global across all
-inputs.
-
-`-` may be used within `FILE...` to represent stdin.
-
-Line numbering is **1-based**.
-
-------------------------------------------------------------------------
-
-## Range Specification
-
-### Valid Forms
-
--   `N` --- select a single line
--   `N,M,K` --- select multiple explicit lines
--   `A..B` --- closed range (inclusive)
--   `..B` --- lines `1` through `B`
--   `A..` --- lines `A` through end-of-input
-
-Whitespace is allowed around `,` and `..`.
-
-### Examples
-
-    lines 1
-    lines 2,4,9
-    lines 3..7
-    lines ..5
-    lines 10..
-
-### Rules
-
--   Indices must be positive integers (1-based).
--   Zero and negative values are invalid.
--   Leading zeros are invalid (`01` is an error).
--   Reversed ranges (`5..2`) are invalid.
--   Duplicate indices are emitted once.
--   Overlapping ranges are merged.
--   Selection is emitted in ascending numeric order.
--   `..` alone is invalid.
-
-------------------------------------------------------------------------
-
-## Input Handling
-
--   If no files are specified, input is read from stdin.
--   If files are specified, they are processed in the order given.
--   `-` represents stdin and may appear multiple times.
--   Line numbering continues across file boundaries.
-
-------------------------------------------------------------------------
-
-## Line Semantics
-
-A line is:
-
--   A sequence of bytes ending with `\n`, OR
--   The final sequence of bytes at EOF if no trailing newline exists.
-
-Output preserves original bytes exactly, including newline presence or
-absence.
-
-`lines` never adds or removes newline characters.
+-   No duplication of full GNU tools
+-   Minimal viable feature surface
+-   Deterministic behavior
+-   Pipeline-first (stdin → stdout)
+-   No environment mutation
+-   Shared range grammar across builtins
+-   1-based indexing
+-   Consistent exit codes
 
 ------------------------------------------------------------------------
 
 ## Exit Codes
 
-| Code \| Meaning \|
-
-\|------\|---------\| 0 \| Success and at least one line emitted \| \| 1
-\| Valid SPEC but no selected lines exist \| \| 2 \| Usage error or
-runtime error \|
-
-Errors include:
-
--   Invalid `SPEC`
--   Missing `SPEC`
--   File open/read failure
--   Output write failure
+  Code   Meaning
+  ------ ------------------------------------------------------------------
+  0      At least one line emitted
+  1      Valid SPEC and readable input, but nothing emitted
+  2      Usage error, invalid SPEC, file I/O error, or stdout write error
 
 ------------------------------------------------------------------------
 
-## Examples
+## SPEC Grammar
 
-### Basic
+Supported forms:
 
-    printf "a\nb\nc\n" | lines 2
-    # b
+-   `N`
+-   `N,M`
+-   `a..b`
+-   `..b`
+-   `a..`
 
-    printf "a\nb\nc\n" | lines 1,3
-    # a
-    # c
-
-### Ranges
-
-    printf "a\nb\nc\n" | lines 2..
-    # b
-    # c
-
-    printf "a\nb\nc\n" | lines ..2
-    # a
-    # b
-
-### Multiple Files
-
-    lines 3 file1 file2
-
-If `file1` has two lines and `file2` begins with `c`, the result is `c`.
-
-### stdin in the middle
-
-    lines 2 file1 - file2
-
-Line numbering continues across all sources.
+Whitespace is allowed around `,` and `..`.
 
 ------------------------------------------------------------------------
 
-## Common Pipeline Mappings
+## Normalization Rules
 
-| Traditional \| Diamond \|
+Handled by `dc_sel_parse_and_normalize()`:
 
-\|-------------\|----------\| sed -n 'Np' \| lines N \| \| head -n K \|
-lines ..K \| \| tail -n +N \| lines N.. \| \| head -n K \| tail -n 1 \|
-lines K \|
+-   Sorted ascending
+-   Duplicates removed
+-   Overlapping ranges merged
+-   Reversed ranges invalid
+-   Leading zeros invalid
+-   Bare `..` invalid
+-   Trailing/double commas invalid
+-   uint64 overflow invalid
 
-------------------------------------------------------------------------
-
-## Non-Goals
-
-`lines` does NOT:
-
--   Print line numbers
--   Support negative indexing
--   Support regex selection
--   Perform sorting or reordering beyond normalization
--   Emulate full `sed`, `head`, or `tail`
--   Modify environment or shell state
--   Perform locale-aware behavior
+Invalid SPEC ⇒ exit 2.
 
 ------------------------------------------------------------------------
 
-## Determinism
+## Input Semantics
 
-For identical byte input and identical `SPEC`, output is byte-identical.
+-   FILEs processed in order.
+-   `-` denotes stdin at that position.
+-   If no FILEs provided, read stdin.
+-   Files concatenated logically.
+-   Line numbering continues across files.
 
-No locale, environment, or time-dependent behavior.
+------------------------------------------------------------------------
+
+## Line Definition
+
+A line is:
+
+-   A byte sequence ending with `\n`
+-   Or a final unterminated sequence at EOF
+
+Newline presence preserved exactly.
+
+------------------------------------------------------------------------
+
+## Output Semantics
+
+-   Matching lines emitted in ascending order.
+-   Bytes written exactly as read.
+-   No additional newline added.
+-   Unterminated final lines remain unterminated.
+
+------------------------------------------------------------------------
+
+## Streaming Behavior
+
+-   Incremental processing.
+-   No full-input buffering.
+-   Early termination when possible via finite max optimization.
+
+------------------------------------------------------------------------
+
+## Error Handling
+
+Usage errors (exit 2):
+
+-   Missing SPEC
+-   Invalid option before `--`
+-   Invalid SPEC grammar
+
+Runtime errors (exit 2):
+
+-   File open failure
+-   Read error
+-   Stdout write failure (closed stdout)
+
+SIGPIPE ignored internally so write failures surface as controlled
+runtime errors.
+
+------------------------------------------------------------------------
+
+## Option Parsing Rules
+
+-   Only `--help` recognized.
+-   Other `-x` before `--` is usage error.
+-   `--` ends option parsing.
+-   After `--`, dash-leading filenames allowed.
+-   `-` treated as stdin in FILE position.
+
+------------------------------------------------------------------------
+
+## Week 1 Completion Criteria
+
+-   `make test` passes with zero failures.
+-   `lines` and `fields` both implemented.
+-   Shared range grammar exercised by both.

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>  // ANCHOR:SIGPIPE-INCLUDE
 
 // Bash loadable builtin headers (provided by bash source / headers)
 #include "config.h"
@@ -101,71 +102,84 @@ static int lines_main(const char *spec, char *const *files, size_t file_count) {
 // - SPEC is required and is the first non-option token.
 __attribute__((visibility("default")))
 int lines_builtin(WORD_LIST *list) {
+  // === ANCHOR:SIGPIPE-BEGIN ===
+  // Ignore SIGPIPE so closed-pipe writes surface as stdio errors (EPIPE) and we return 2.
+  void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
+  // === ANCHOR:SIGPIPE-END ===
+
   bool end_opts = false;
   const char *spec = NULL;
 
-  // Collect files after SPEC.
-  // NOTE: WORD_LIST is a singly linked list.
   size_t fcap = 8;
   size_t fcnt = 0;
   char **files = (char **)calloc(fcap, sizeof(char *));
-  if (!files) return lines_io_err("out of memory");
+  if (!files) {
+    signal(SIGPIPE, old_sigpipe);
+    return lines_io_err("out of memory");
+  }
 
+  int rc = 2; // default error unless set
+
+  // === ANCHOR:ARGV-PARSE-BEGIN ===
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
     if (!tok) tok = "";
 
     if (!spec) {
       if (!end_opts && strcmp(tok, "--help") == 0) {
-        free(files);
-        return lines_help();
+        rc = lines_help();
+        goto out;
       }
       if (!end_opts && strcmp(tok, "--") == 0) {
         end_opts = true;
         continue;
       }
 
-      // tok is candidate SPEC.
       if (!end_opts && tok[0] == '-' && tok[1] != '\0' && strcmp(tok, "-") != 0) {
-        free(files);
-        return lines_usage_err("unknown option (use --help)");
+        rc = lines_usage_err("unknown option (use --help)");
+        goto out;
       }
       spec = tok;
       continue;
     }
 
-    // After SPEC: parse file args.
     if (!end_opts && strcmp(tok, "--") == 0) {
       end_opts = true;
       continue;
     }
 
     if (!end_opts && tok[0] == '-' && tok[1] != '\0' && strcmp(tok, "-") != 0) {
-      free(files);
-      return lines_usage_err("unknown option (use --help)");
+      rc = lines_usage_err("unknown option (use --help)");
+      goto out;
     }
 
     if (fcnt == fcap) {
       size_t ncap = fcap * 2;
       char **nf = (char **)realloc(files, ncap * sizeof(char *));
       if (!nf) {
-        free(files);
-        return lines_io_err("out of memory");
+        rc = lines_io_err("out of memory");
+        goto out;
       }
       files = nf;
       fcap = ncap;
     }
     files[fcnt++] = (char *)tok;
   }
+  // === ANCHOR:ARGV-PARSE-END ===
 
   if (!spec) {
-    free(files);
-    return lines_usage_err("missing SPEC");
+    rc = lines_usage_err("missing SPEC");
+    goto out;
   }
 
-  int rc = lines_main(spec, files, fcnt);
+  rc = lines_main(spec, files, fcnt);
+
+out:
+  // === ANCHOR:CLEANUP-BEGIN ===
   free(files);
+  signal(SIGPIPE, old_sigpipe);
   return rc;
+  // === ANCHOR:CLEANUP-END ===
 }
 
 __attribute__((visibility("default")))
