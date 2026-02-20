@@ -2,6 +2,8 @@
 
 #include "diamondcore.h"
 
+#include <sys/types.h>  /* ssize_t */
+#include <stdio.h>      /* getline */
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
