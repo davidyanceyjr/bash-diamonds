@@ -13,13 +13,7 @@ bash_with_match() {
 @test "match: basic substring match (default keep)" {
   run bash_with_match 'printf "alpha\nbeta\ngamma\n" | match a'
   [ "$status" -eq 0 ]
-  [ "$output" = $'alpha\ngamma' ]
-}
-
-@test "match: invert match (-v)" {
-  run bash_with_match 'printf "alpha\nbeta\ngamma\n" | match -v a'
-  [ "$status" -eq 0 ]
-  [ "$output" = "beta" ]
+  [ "$output" = $'alpha\nbeta\ngamma' ]
 }
 
 @test "match: no matches returns exit 1" {
@@ -40,33 +34,126 @@ bash_with_match() {
   [ "$output" = "bar" ]
 }
 
-@test "match: -n prefixes line numbers" {
-  run bash_with_match 'printf "a\nb\na\n" | match -n a'
+@test "match: dot wildcard matches any single char (non-empty lines)" {
+  run bash_with_match 'printf "a\n\nbc\n" | match "."'
   [ "$status" -eq 0 ]
-  [ "$output" = $'1:a\n3:a' ]
+  [ "$output" = $'a\nbc' ]
 }
 
-@test "match: -c counts matches" {
-  run bash_with_match 'printf "a\nb\na\n" | match -c a'
+@test "match: question mark makes previous atom optional" {
+  run bash_with_match 'printf "color\ncolour\ncolouur\n" | match "^colou?r$"'
   [ "$status" -eq 0 ]
-  [ "$output" = "2" ]
+  [ "$output" = $'color\ncolour' ]
 }
 
-@test "match: -c with no matches returns 1 and prints 0" {
-  run bash_with_match 'printf "a\nb\n" | match -c z'
-  [ "$status" -eq 1 ]
-  [ "$output" = "0" ]
+@test "match: plus requires one-or-more" {
+  run bash_with_match 'printf "a\n\nbbb\n" | match "^b+$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = "bbb" ]
 }
 
-@test "match: no trailing newline on single match" {
+@test "match: star allows zero-or-more (matches empty line too)" {
+  # If your spec forbids empty matches, change this test accordingly.
+  run bash_with_match 'printf "\n\naaa\nbbb\n" | match "^a*$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'\n\naaa' ]
+}
+
+@test "match: grouping with alternation precedence" {
+  run bash_with_match 'printf "ac\nabc\nabbc\n" | match "^(ab|a)c$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'ac\nabc' ]
+}
+
+@test "match: alternation basic" {
+  run bash_with_match 'printf "foo\nbar\nbaz\nqux\n" | match "^(foo|baz)$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'foo\nbaz' ]
+}
+
+@test "match: character class simple" {
+  run bash_with_match 'printf "a\nb\nc\nd\n" | match "^[a-c]$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a\nb\nc' ]
+}
+
+@test "match: character class negation" {
+  run bash_with_match 'printf "a\nb\nc\n" | match "^[^a]$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'b\nc' ]
+}
+
+@test "match: escapes treat metacharacters literally" {
+  run bash_with_match 'printf "a.c\nabc\na-c\n" | match "^a\\.c$"'
+  [ "$status" -eq 0 ]
+  [ "$output" = "a.c" ]
+}
+
+@test "match: unterminated final line is emitted unterminated" {
   tmp="$BATS_TEST_TMPDIR/match_bytes_$$.out"
 
-  bash_with_match 'printf "alpha\nbeta\n" | match beta > "'"$tmp"'"'
+  # final line has no trailing newline
+  bash_with_match 'printf "alpha\nbeta" | match beta > "'"$tmp"'"'
   status=$?
   [ "$status" -eq 0 ]
 
   bytes="$(od -An -tx1 "$tmp" | tr -d " \n")"
   [ "$bytes" = "62657461" ]  # "beta"
+}
+
+@test "match: CRLF bytes are preserved (\\r is part of line bytes)" {
+  tmp="$BATS_TEST_TMPDIR/match_crlf_$$.out"
+
+  # Use $'...' so the pattern contains an actual 0x0d byte.
+  bash_with_match 'printf $'"'"'alpha\r\nbeta\r\ngamma\r\n'"'"' | match $'"'"'^beta\r$'"'"' > "'"$tmp"'"'
+  status=$?
+  [ "$status" -eq 0 ]
+
+  bytes="$(od -An -tx1 "$tmp" | tr -d " \n")"
+  # "beta\r\n" => 62 65 74 61 0d 0a
+  [ "$bytes" = "626574610d0a" ]
+}
+
+@test "match: option parsing is strict (unknown -x before -- is usage error)" {
+  run bash_with_match 'printf "a\n" | match -v a 2>&1'
+  [ "$status" -eq 2 ]
+  [[ "$output" == match:* ]]
+}
+
+@test "match: pattern beginning with '-' requires --" {
+  run bash_with_match 'printf -- "-foo\nbar\n" | match -- "-foo"'
+  [ "$status" -eq 0 ]
+  [ "$output" = "-foo" ]
+}
+
+@test "match: invalid regex (unclosed [) is usage/runtime error (exit 2) with one-line message" {
+  run bash_with_match 'printf "a\n" | match "[" 2>&1'
+  [ "$status" -eq 2 ]
+  [[ "$output" == match:* ]]
+  [[ "$output" != *$'\n'* ]]
+}
+
+@test "match: invalid regex (unclosed () is usage/runtime error (exit 2) with one-line message" {
+  run bash_with_match 'printf "a\n" | match "(" 2>&1'
+  [ "$status" -eq 2 ]
+  [[ "$output" == match:* ]]
+  [[ "$output" != *$'\n'* ]]
+}
+
+@test "match: invalid regex (dangling escape) is usage/runtime error (exit 2) with one-line message" {
+  run bash_with_match 'printf "a\n" | match "\\" 2>&1'
+  [ "$status" -eq 2 ]
+  [[ "$output" == match:* ]]
+  [[ "$output" != *$'\n'* ]]
+}
+
+@test "match: stdout write error maps to exit 2 (SIGPIPE ignored internally)" {
+  run bash -c '
+    set -o pipefail
+    enable -f "$BASH_BUILTINS_DIR/match.debug.so" match
+    awk "BEGIN{for(i=0;i<200000;i++) print \"x\"}" | match "^x$" | head -n1 >/dev/null
+  '
+  [ "$status" -eq 2 ]
 }
 
 @test "match: large input streaming sanity" {

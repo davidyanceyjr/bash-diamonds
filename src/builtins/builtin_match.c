@@ -70,6 +70,8 @@ static int match_main(const char *pattern, char *const *files, size_t file_count
       break; /* EOF */
     }
 
+    // Match against the line content excluding a terminating '\n' (if present),
+    // but always emit the original bytes verbatim when matched.
     size_t subj_len = v.len;
     if (v.ends_with_nl && subj_len > 0) subj_len--;
 
@@ -85,7 +87,14 @@ static int match_main(const char *pattern, char *const *files, size_t file_count
     if (matched) {
       if (v.len > 0) {
         size_t n = fwrite(v.ptr, 1, v.len, stdout);
-        if (n != v.len) {
+        if (n != v.len || ferror(stdout)) {
+          dc_lr_close(lr);
+          dc_regex_free(re);
+          return match_io_err("write error");
+        }
+
+        // Force the kernel write while SIGPIPE is ignored, and verify stdio state.
+        if (fflush(stdout) != 0 || ferror(stdout)) {
           dc_lr_close(lr);
           dc_regex_free(re);
           return match_io_err("write error");
@@ -93,6 +102,13 @@ static int match_main(const char *pattern, char *const *files, size_t file_count
       }
       emitted = true;
     }
+  }
+
+  // Final safety check for any pending stdio error.
+  if (fflush(stdout) != 0 || ferror(stdout)) {
+    dc_lr_close(lr);
+    dc_regex_free(re);
+    return match_io_err("write error");
   }
 
   dc_lr_close(lr);
