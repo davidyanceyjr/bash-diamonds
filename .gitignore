@@ -6,5 +6,6 @@
 *.tmp
 *.swp
 *.swo
+*.snap
 .DS_Store
 src/builtins_fixed.tar.gz
