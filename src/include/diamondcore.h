@@ -46,6 +46,17 @@ void dc_print_usage_trim(FILE *out);
 void dc_print_usage_lines(FILE *out);
 void dc_print_usage_fields(FILE *out);
 void dc_print_usage_match(FILE *out);
+void dc_print_usage_take(FILE *out);
+
+/* Strict unsigned base-10 integer parsing.
+ * - digits only
+ * - no sign
+ * - no leading zeros unless exactly "0"
+ * - must fit in uint64_t
+ * On failure sets err->code=DC_ERR_USAGE and a short message (e.g. "invalid N").
+ */
+bool dc_parse_u64_dec_strict(const char *s, uint64_t *out, const char *label,
+                             dc_error_t *err);
 
 /* Selection (range parser + normalizer) */
 dc_sel_t *dc_sel_parse_and_normalize(const char *spec, dc_error_t *err);
