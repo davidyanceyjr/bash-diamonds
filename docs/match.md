@@ -1,18 +1,18 @@
-# `match` — Diamond Builtin Specification (Week 3)
+# match — Diamond Builtin Specification (Week 3)
 
 Filter input lines by a deterministic, constrained regex.
 
-This is NOT GNU `grep`.
+This is NOT GNU grep.
 This is a minimal, pipeline-first line filter.
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 ## Synopsis
 
     match PATTERN [--] [FILE...]
     match --help
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 ## Exit Codes
 
@@ -20,58 +20,76 @@ This is a minimal, pipeline-first line filter.
   ------ ---------------------------------------------------------------
   0      At least one matching line emitted
   1      No matching lines emitted (inputs readable)
-  2      Usage error, pattern compile error, file I/O error, stdout write error
+  2      Usage error, pattern compile error, file I/O error,
+         stdout write error, or execution limit exceeded
 
 SIGPIPE must be ignored internally so stdout write failures return exit 2.
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 ## Input Semantics
 
-Same concatenation rules as `lines` / `fields` / `trim`:
+Same concatenation rules as `lines`, `fields`, and `trim`:
 
 - FILEs processed in order.
 - `-` denotes stdin at that position.
 - If no FILEs provided, read stdin.
-- Use shared dc_lr_* line reader (streaming, line-at-a-time).
+- Use shared `dc_lr_*` line reader (streaming, line-at-a-time).
 - Only the current line may be retained; no full-input buffering.
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 ## Output Semantics
 
-- For each input line, if it matches, emit the original line bytes exactly as read:
-  - including its newline if present.
+- For each input line, if it matches, emit the original line bytes
+  exactly as read, including its newline if present.
 - If it does not match, emit nothing for that line.
 - Unterminated final line:
   - if it matches, emit it unterminated (do not append '\n').
 
-Newline is *structural*: it is not part of the match subject.
+Newline is structural and is not part of the match subject.
 
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 ## Match Subject
 
-Let the input line be bytes `B[0..len-1]`.
+Let the input line be bytes B[0..len-1].
 
-- If the line ends with `\n`, the match subject is `B[0..len-2]`.
-- Otherwise (unterminated), the match subject is `B[0..len-1]`.
+- If the line ends with '\n', the match subject is B[0..len-2].
+- Otherwise, the match subject is B[0..len-1].
 
-The regex operates on bytes (0x00–0xFF), but this v1 language only defines
-portable behavior for ASCII-range constructs (literals, ranges).
-No locale/UTF-8 semantics.
+The subject is treated as a byte array with explicit length.
 
-------------------------------------------------------------------------
+Pattern bytes are taken from argv and therefore cannot contain NUL.
+
+The regex operates on bytes (0x00–0xFF).
+This v1 language defines portable behavior only for ASCII-range constructs.
+
+-----------------------------------------------------------------------
 
 ## Option Parsing Rules
 
-- Only `--help` is recognized.
-- Any other `-x` token before `--` is a usage error unless token is exactly `-`.
+- `--help` is recognized only when it is the sole argument.
+- Any other `-x` token before `--` is a usage error unless the token is
+  exactly `-`.
 - `--` ends option parsing.
+- `--` may appear only after PATTERN.
+- If argv[1] is `--`, this is a usage error (missing PATTERN).
 - After `--`, dash-leading filenames are allowed.
 - Token `-` in FILE list denotes stdin at that position.
 
-------------------------------------------------------------------------
+To match a pattern beginning with `-`, use:
+
+    match -- '-foo' file
+
+-----------------------------------------------------------------------
+
+## PATTERN Requirements
+
+- PATTERN must be 1–4096 bytes.
+- Empty PATTERN is a compile error (exit 2).
+
+-----------------------------------------------------------------------
 
 ## Regex Language (v1)
 
@@ -79,16 +97,36 @@ The language is a constrained ERE-like subset.
 
 ### Metacharacters
 
-Metacharacters are: `. * + ? | ( ) [ ] ^ $ \`
+Metacharacters are:
 
-A metacharacter is literal only when escaped with `\`, except:
-- Inside `[...]`, `]`, `-`, `^`, and `\` have special rules (below).
+    . * + ? | ( ) [ ] ^ $ \
 
-### Grammar (informal)
+A metacharacter is literal only when escaped with `\`,
+except inside `[...]` where class rules apply.
+
+-----------------------------------------------------------------------
+
+## Anchors
+
+- `^` is an anchor only if it is the first byte of PATTERN.
+- `$` is an anchor only if it is the last byte of PATTERN.
+- Anchors inside groups are treated as literal bytes.
+- Anchors elsewhere are literal unless escaped.
+
+Examples:
+
+- `^foo`        → anchored at subject start
+- `(foo)$`      → anchored at subject end
+- `(^foo)`      → `^` is literal
+- `foo$|bar`    → `$` is literal
+
+-----------------------------------------------------------------------
+
+## Grammar (informal)
 
 - regex        := alt
 - alt          := concat ( '|' concat )*
-- concat       := repeat*
+- concat       := repeat+
 - repeat       := atom quant?
 - quant        := '*' | '+' | '?'
 - atom         := literal
@@ -98,121 +136,162 @@ A metacharacter is literal only when escaped with `\`, except:
                | anchor_start
                | anchor_end
 
-- group        := '(' alt ')'
-- class        := '[' class_body ']'
-- anchor_start := '^' (only if it is the first token of the pattern)
-- anchor_end   := '$' (only if it is the last token of the pattern)
+Restrictions:
 
-Notes:
-- Empty alternates are NOT allowed: `a|` and `|a` are compile errors.
-- Empty groups are NOT allowed: `()` is a compile error.
-- Empty classes are NOT allowed: `[]` or `[^]` are compile errors.
+- Empty alternates are compile errors (`a|`, `|a`).
+- Empty groups `()` are compile errors.
+- Empty classes `[]` or `[^]` are compile errors.
+- Pattern may not begin with a quantifier.
+- Quantifier may not follow `|` or `(`.
+- Double quantifiers (`a**`, `a+?`, etc.) are compile errors.
+- Unterminated group is compile error.
+- Unterminated class is compile error.
+- Trailing escape (`\` at end of pattern) is compile error.
 
-### Literals
+-----------------------------------------------------------------------
 
-Any byte other than metacharacters matches itself.
-Escapes produce literal bytes for metacharacters:
+## Literals and Escapes
 
-  \. \* \+ \? \| \( \) \[ \] \^ \$ \\
+Valid escapes:
 
-Any other escape sequence `\X` where X is not one of the above is a
-pattern compile error (exit 2).
+    \. \* \+ \? \| \( \) \[ \] \^ \$ \\
 
-### Dot
+Any other `\X` is a compile error.
+
+-----------------------------------------------------------------------
+
+## Dot
 
 `.` matches any single byte in the subject.
 
-### Character Classes
+-----------------------------------------------------------------------
+
+## Character Classes
 
 `[...]` matches exactly one byte.
 
 Supported forms:
+
 - Explicit bytes: `[abc]`
-- Ranges: `[a-z]`, `[0-9]` (ASCII codepoint order only)
+- Ranges: `[a-z]`, `[0-9]`
 - Negation: `[^a-z]`
 
-Escapes inside classes:
-- `\\` matches backslash
-- `\]` matches `]`
-- `\-` matches `-`
-- `\^` matches `^` (when used literally)
-
 Rules:
-- `^` is negation only if it is the first character after `[` (or after `[^`).
+
+- `^` is negation only if it is the first byte after `[`.
 - `-` is a range operator only when between two bytes; otherwise literal.
-- Ranges must be increasing by byte value (e.g. `z-a` is compile error).
+  - `[a-]` and `[-a]` are valid and include `-`.
+- Ranges must be strictly increasing in unsigned byte value.
+  - `z-a` is compile error.
+- `]` must be escaped (`\]`) to be literal.
+- Supported escapes inside classes:
+  - `\\`
+  - `\]`
+  - `\-`
+  - `\^`
+- POSIX named classes (e.g. `[[:alpha:]]`) are compile errors.
 
-POSIX named classes (e.g. `[[:alpha:]]`) are NOT supported (compile error).
-
-### Quantifiers
-
-`*`, `+`, `?` apply to the immediately preceding atom or group.
-
-Invalid uses are compile errors:
-- pattern begins with a quantifier
-- quantifier follows `|` or `(` or begins a concat
-- double quantifiers like `a**`, `a+?` etc.
-
-### Alternation and Grouping
-
-- `|` alternation has lowest precedence.
-- Concatenation binds tighter than `|`.
-- Parentheses group as expected.
-- Nested groups allowed.
-
-------------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 ## Matching Mode
 
-Default mode is **search**: a match may occur anywhere in the subject.
-Anchors restrict as usual:
-- `^` at pattern start anchors at subject position 0.
-- `$` at pattern end anchors at subject end.
+Default mode is search.
 
-Anchors elsewhere are literals unless escaped rules apply.
+For each subject:
 
-------------------------------------------------------------------------
+- The engine attempts a match starting at subject offsets 0 through len.
+- First successful match stops evaluation of that line.
+- If PATTERN begins with `^`, matching is attempted only at offset 0.
+- `$` requires match to end at subject length.
 
-## Determinism and Resource Limits (v1)
+Quantifiers are greedy, but only match existence is observable.
+Match spans are not exposed.
 
-To ensure predictable behavior:
+-----------------------------------------------------------------------
+
+## Execution Model and Resource Limits
+
+Implementation uses Thompson NFA simulation with explicit epsilon-closure.
+
+- Active state sets must not contain duplicate instructions.
+- State processing order must be deterministic.
+
+Limits:
 
 - Maximum PATTERN length: 4096 bytes
-- Maximum compiled program size (NFA instructions): 16384
-- Maximum active NFA states during execution: 8192
-- Maximum per-line “step” budget: 2,000,000 state transitions
-  - If exceeded, treat as runtime error (exit 2) with message:
-    "match: regex execution limit exceeded"
+- Maximum compiled NFA instruction count: 16384
+- Maximum active NFA states: 8192
+- Maximum per-line transition budget: 2,000,000
 
-Rationale: prevents pathological regexes from hanging the shell.
+The transition budget:
 
-------------------------------------------------------------------------
+- Applies per input line.
+- Resets for each new line.
+- Includes all restart attempts for that line.
+- Counts each time an NFA instruction/state is processed for a subject
+  position, including epsilon transitions.
+
+If the active state set exceeds 8192 entries,
+or if the transition budget is exceeded:
+
+    match: regex execution limit exceeded
+
+Exit 2.
+
+If compilation exceeds the instruction limit,
+pattern compilation fails (exit 2).
+
+These limits guarantee predictable runtime and prevent pathological
+behavior.
+
+-----------------------------------------------------------------------
 
 ## Error Handling
 
 Exit 2 for:
+
 - Missing PATTERN
-- Unknown option / invalid option placement
-- Pattern compile error (invalid syntax, unsupported constructs)
+- Unknown option or invalid option placement
+- Pattern compile error
 - File open/read error
-- Stdout write error (including closed stdout)
+- Stdout write error
 - Regex execution limit exceeded
 
-------------------------------------------------------------------------
+All errors print exactly one line to stderr:
+
+    match: <message>
+
+-----------------------------------------------------------------------
+
+## Non-Goals
+
+- No flags (`-i`, `-v`, `-n`, etc.)
+- No multi-line matching
+- No capture groups or backreferences
+- No lookahead/lookbehind
+- No POSIX named classes
+- No locale or UTF-8 semantics
+
+-----------------------------------------------------------------------
 
 ## Examples
 
 Match any line containing "error":
+
     match 'error' file.log
 
 Match lines starting with YYYY-MM-DD:
+
     match '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' file.log
 
 Match lines ending with ".c":
+
     match '\.c$' < files.txt
 
 Match "foo" or "bar":
+
     match '(foo|bar)' input
 
 Match hex bytes:
+
     match '0x[0-9A-Fa-f]+' input
