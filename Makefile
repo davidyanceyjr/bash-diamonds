@@ -31,8 +31,8 @@ CFLAGS_BASE  := $(WARN) $(DEFS) -fPIC -fvisibility=hidden -fno-common $(INCFLAGS
 LDFLAGS_BASE := -shared
 LDLIBS       := -lm
 
-# Week 1 builtins
-BUILTINS := lines fields
+# Week 1+ builtins
+BUILTINS := lines fields trim
 
 # Core sources (includes opts.c; opts.c must not be empty under -Wpedantic/-Werror)
 CORE_SRCS := $(wildcard $(SRC_DIR)/diamondcore/*.c)
@@ -85,7 +85,7 @@ run-%: debug
 # --------------------------
 gdb-%: debug
 	@case "$*" in \
-		lines|fields) ;; \
+		lines|fields|trim) ;; \
 		*) echo "Unknown builtin '$*' (supported: $(BUILTINS))" >&2; exit 2 ;; \
 	esac
 	@rc="$(abspath $(BUILD_DIR))/rc_$*.sh"; \
