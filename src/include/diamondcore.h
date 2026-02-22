@@ -78,4 +78,13 @@ void dc_lr_close(dc_line_reader_t *lr);
  */
 size_t dc_split_ws(const uint8_t *line, size_t len, dc_field_view_t **out_fields);
 
+/* Split a line into fields separated by a single byte delimiter.
+ * - Preserves empty fields (consecutive/leading/trailing delimiters).
+ * - Returns number of fields (>=1 for any line, including empty).
+ * - On success, *out_fields points to heap array of views into line buffer (no copies). Caller free().
+ * - On allocation failure, returns (size_t)-1 and sets *out_fields = NULL.
+ */
+size_t dc_split_delim(const uint8_t *line, size_t len, uint8_t delim,
+                      dc_field_view_t **out_fields);
+
 #endif /* DIAMONDCORE_H */

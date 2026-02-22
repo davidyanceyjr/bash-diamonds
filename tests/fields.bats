@@ -41,6 +41,30 @@ run_fields_od() {
     printf "%s" "$in" | fields "$spec" | od -An -tx1
   ' _ "$FIELDS_SO" "$spec" "$input"
 }
+
+run_fields_d() {
+  local delim="$1"
+  local spec="$2"
+  local input="$3"
+  run bash --noprofile --norc -c '
+    so="$1"; d="$2"; spec="$3"; in="$4"
+    enable -f "$so" fields || exit 99
+    printf "%s" "$in" | fields -d "$d" "$spec"
+  ' _ "$FIELDS_SO" "$delim" "$spec" "$input"
+}
+
+run_fields_d_od() {
+  local delim="$1"
+  local spec="$2"
+  local input="$3"
+  run bash --noprofile --norc -c '
+    set -o pipefail
+    so="$1"; d="$2"; spec="$3"; in="$4"
+    enable -f "$so" fields || exit 99
+    printf "%s" "$in" | fields -d "$d" "$spec" | od -An -tx1
+  ' _ "$FIELDS_SO" "$delim" "$spec" "$input"
+}
+
 # === ANCHOR:HELPERS-END ===
 
 @test "fields: basic selection (field 2)" {
@@ -263,4 +287,90 @@ run_fields_od() {
   run_fields " .. 2 " $'a b c\n'
   [ "$status" -eq 0 ]
   [ "$output" = $'a b' ]
+}
+
+@test "fields: delimiter mode parses passwd-style records (-d: 1,7)" {
+  run bash --noprofile --norc -c "
+    enable -f '$FIELDS_SO' fields || exit 99
+    fields -d: '1,7' /etc/passwd | head -n 1
+  "
+  [ "$status" -eq 0 ]
+  # Expect username in field 1; field 7 is typically a shell path.
+  [[ "$output" =~ ^root[[:space:]].*/.*$ ]]
+}
+
+# FIXED: bats strips trailing newlines from $output, so use od to assert exact bytes.
+@test "fields: delimiter mode preserves empty field (a::c, select 2 emits blank line)" {
+  run_fields_d_od ":" "2" $'a::c\n'
+  [ "$status" -eq 0 ]
+  set -- $output
+  [ "$#" -eq 1 ]
+  [ "$1" = "0a" ]
+}
+
+@test "fields: delimiter mode preserves leading empty field (:a:b, select 1 emits blank line)" {
+  run_fields_d_od ":" "1" $':a:b\n'
+  [ "$status" -eq 0 ]
+  set -- $output
+  [ "$#" -eq 1 ]
+  [ "$1" = "0a" ]
+}
+
+@test "fields: delimiter mode preserves trailing empty field (a:b:, select 3 emits blank line)" {
+  run_fields_d_od ":" "3" $'a:b:\n'
+  [ "$status" -eq 0 ]
+  set -- $output
+  [ "$#" -eq 1 ]
+  [ "$1" = "0a" ]
+}
+
+@test "fields: delimiter mode joins selected fields with single spaces (a::c, 1,2,3 => 'a  c')" {
+  run_fields_d ":" "1,2,3" $'a::c\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a  c' ]
+}
+
+@test "fields: -d missing argument => exit 2" {
+  run bash --noprofile --norc -c "
+    enable -f '$FIELDS_SO' fields || exit 99
+    printf 'a:b\n' | fields -d 1 >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "fields: -d multi-character argument => exit 2" {
+  run bash --noprofile --norc -c "
+    enable -f '$FIELDS_SO' fields || exit 99
+    printf 'a:b\n' | fields -dab 1 >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+@test "fields: delimiter mode does not regress whitespace mode" {
+  run_fields "1,3" $'\t a\t\t b   c \t\n'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a c' ]
+}
+
+@test "fields: strict option parsing still rejects unknown -x (exit 2)" {
+  run bash --noprofile --norc -c "
+    enable -f '$FIELDS_SO' fields || exit 99
+    printf 'a b\n' | fields -x 1 >/dev/null
+  "
+  [ "$status" -eq 2 ]
+}
+
+# FIXED: if second line emits zero bytes and has no newline, output still ends with first line's newline.
+@test "fields: delimiter mode newline preservation (empty field on unterminated last line)" {
+  run_fields_d_od ":" "2" $'a::c\nX::Y'
+  [ "$status" -eq 0 ]
+
+  set -- $output
+  count=0
+  for b in "$@"; do
+    [ "$b" = "0a" ] && count=$((count + 1))
+  done
+  [ "$count" -eq 1 ]
+  last="${@: -1}"
+  [ "$last" = "0a" ]
 }
