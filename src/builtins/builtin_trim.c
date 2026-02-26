@@ -10,8 +10,7 @@
 #include <string.h>
 #include <signal.h>  // ANCHOR:SIGPIPE-INCLUDE
 
-// Bash loadable builtin headers (provided by bash source / headers)
-#include "config.h"
+// Bash loadable builtin headers (vendored minimal subset for loadables)
 #include "builtins.h"
 #include "shell.h"
 
@@ -36,7 +35,7 @@ static int trim_io_err(const char *msg) {
 }
 
 static int trim_help(void) {
-  dc_print_usage_trim(stdout);
+  dc_print_help_trim(stdout);
   return 0;
 }
 

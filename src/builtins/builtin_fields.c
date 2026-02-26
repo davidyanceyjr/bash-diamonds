@@ -9,13 +9,12 @@
 #include <string.h>
 #include <signal.h>
 
-// Bash loadable builtin headers (provided by bash source / headers)
-#include "config.h"
+// Bash loadable builtin headers (vendored minimal subset for loadables)
 #include "builtins.h"
 #include "shell.h"
 
 __attribute__((unused))
-static const char *fields_shortdoc = "fields SPEC [--] [FILE...]";
+static const char *fields_shortdoc = "fields [-d DELIM] SPEC [--] [FILE...]";
 
 static char *fields_doc[] = {
   "Select and emit specific 1-based fields from each input line.",
@@ -36,13 +35,14 @@ static int fields_io_err(const char *msg) {
 }
 
 static int fields_help(void) {
-  dc_print_usage_fields(stdout);
+  dc_print_help_fields(stdout);
   return 0;
 }
 // === ANCHOR:ERROR-HELPERS-END ===
 
 // === ANCHOR:CORE-MAIN-BEGIN ===
-static int fields_main(const char *spec, char *const *files, size_t file_count) {
+static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
+                       char *const *files, size_t file_count) {
   dc_error_t err;
   dc_sel_t *sel = dc_sel_parse_and_normalize(spec, &err);
   if (!sel) {
@@ -72,8 +72,20 @@ static int fields_main(const char *spec, char *const *files, size_t file_count) 
       break; // EOF
     }
 
+    const uint8_t *line = v.ptr;
+    size_t linelen = v.len;
+    if (v.ends_with_nl && linelen > 0) linelen--; // newline is not part of any field
+
     dc_field_view_t *fields = NULL;
-    size_t nfields = dc_split_ws(v.ptr, v.len, &fields);
+    size_t nfields = 0;
+
+    if (delim_mode) {
+      nfields = dc_split_delim(line, linelen, delim, &fields);
+    } else {
+      // Whitespace mode: treat newline as whitespace.
+      nfields = dc_split_ws(line, v.len, &fields);
+    }
+
     if (nfields == (size_t)-1) {
       dc_lr_close(lr);
       dc_sel_free(sel);
@@ -139,7 +151,7 @@ static int fields_main(const char *spec, char *const *files, size_t file_count) 
 // === ANCHOR:CORE-MAIN-END ===
 
 // Parsing rules:
-// - Only --help is recognized.
+// - Only --help and -d DELIM are recognized (before SPEC, unless after --).
 // - Any other -x token is an error unless after --, or token is exactly '-'.
 // - SPEC is required and is the first non-option token.
 __attribute__((visibility("default")))
@@ -151,6 +163,9 @@ int fields_builtin(WORD_LIST *list) {
 
   bool end_opts = false;
   const char *spec = NULL;
+
+  bool delim_mode = false;
+  uint8_t delim = 0;
 
   size_t fcap = 8;
   size_t fcnt = 0;
@@ -174,6 +189,36 @@ int fields_builtin(WORD_LIST *list) {
       }
       if (!end_opts && strcmp(tok, "--") == 0) {
         end_opts = true;
+        continue;
+      }
+
+      if (!end_opts && strncmp(tok, "-d", 2) == 0 && tok[1] == 'd') {
+        const char *darg = NULL;
+        if (tok[2] != '\0') {
+          // -dX form
+          darg = tok + 2;
+        } else {
+          // -d X form; take next WORD_LIST element as argument.
+          if (!w->next) {
+            rc = fields_usage_err("missing DELIM for -d");
+            goto out;
+          }
+          w = w->next;
+          darg = w->word->word;
+          if (!darg) darg = "";
+        }
+
+        if (delim_mode) {
+          rc = fields_usage_err("duplicate -d");
+          goto out;
+        }
+        if (strlen(darg) != 1) {
+          rc = fields_usage_err("DELIM must be exactly 1 byte");
+          goto out;
+        }
+
+        delim_mode = true;
+        delim = (uint8_t)darg[0];
         continue;
       }
 
@@ -215,7 +260,7 @@ int fields_builtin(WORD_LIST *list) {
     goto out;
   }
 
-  rc = fields_main(spec, files, fcnt);
+  rc = fields_main(spec, delim_mode, delim, files, fcnt);
 
 out:
   // === ANCHOR:CLEANUP-BEGIN ===
@@ -231,6 +276,6 @@ struct builtin fields_struct = {
   .function = fields_builtin,
   .flags = BUILTIN_ENABLED,
   .long_doc = fields_doc,
-  .short_doc = (char *)"fields SPEC [--] [FILE...]",
+  .short_doc = (char *)"fields [-d DELIM] SPEC [--] [FILE...]",
   .handle = 0,
 };

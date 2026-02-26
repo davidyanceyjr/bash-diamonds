@@ -1,131 +1,76 @@
-# `fields` --- Diamond Builtin Specification (Week 1)
+# `fields`
 
-Select and emit specific 1-based whitespace-delimited fields from each
-input line.
+Select and emit specific **1-based** fields from each input line.
 
-------------------------------------------------------------------------
-
-## Status (Week 1)
-
-Implemented and passing full test suite (`make test`).
-
-Load example:
-
-    enable -f ./build/fields.debug.so fields
-
-------------------------------------------------------------------------
+Default splitting is **ASCII whitespace**.
+With `-d`, splitting is **single-byte delimiter** based.
 
 ## Synopsis
 
-    fields SPEC [--] [FILE...]
+    fields [-d DELIM] SPEC [--] [FILE...]
     fields --help
 
-------------------------------------------------------------------------
+## Options
 
-## Diamond Rules Compliance
+- `--help` print help to stdout and exit 0
+- `--` end option parsing
+- `-d DELIM` delimiter mode (`-dX` or `-d X`)
+  - `DELIM` must be exactly **1 byte** after shell expansion
+  - duplicate `-d` is a usage error
 
--   No duplication of full GNU tools
--   Minimal feature surface
--   Deterministic behavior
--   Pipeline-first (stdin → stdout)
--   No environment mutation
--   Shared range grammar
--   1-based indexing
--   Consistent exit codes
+## Arguments
 
-------------------------------------------------------------------------
+- `SPEC` range selection grammar (shared): see `docs/common-range-spec.md`
+- `FILE...` optional input files
 
-## Exit Codes
+## Input semantics
 
-  Code   Meaning
-  ------ ------------------------------------------------------------------
-  0      At least one field emitted
-  1      Valid SPEC and readable input, but nothing emitted
-  2      Usage error, invalid SPEC, file I/O error, or stdout write error
+- Files are processed left-to-right.
+- `-` means stdin at that position.
+- If no `FILE` is provided, stdin is used.
+- Selection applies **independently to each input line**.
 
-------------------------------------------------------------------------
+## Field splitting
 
-## SPEC Grammar
+### Whitespace mode (default)
 
-Identical to `lines`:
+- Delimiters: ASCII whitespace
+- Runs collapse
+- Leading/trailing whitespace ignored
+- No empty fields
 
--   `N`
--   `N,M`
--   `a..b`
--   `..b`
--   `a..`
+### Delimiter mode (`-d`)
 
-Whitespace allowed around separators.
+- Split on the single byte `DELIM`
+- Empty fields are preserved (consecutive/leading/trailing delimiters)
 
-Normalization identical to `lines` via shared parser.
+## Output and newline behavior
 
-------------------------------------------------------------------------
+- Selected fields are emitted in ascending order.
+- Selected fields are joined with a single ASCII space (`0x20`).
+- A line is emitted only if at least one selected field position exists for that line.
+- If a line is emitted:
+  - input newline is preserved
+  - no newline is synthesized
 
-## Input Semantics
+## Streaming behavior
 
--   FILEs processed in order.
--   `-` denotes stdin at that position.
--   If no FILEs provided, read stdin.
--   Files concatenated logically.
--   Selection applied per line (not global indexing).
+Streaming, line-at-a-time. Only the current line is buffered.
 
-------------------------------------------------------------------------
+## Exit codes
 
-## Field Splitting Rules
+See `docs/common-exit-codes.md`.
 
-For each line:
+## Examples
 
--   Split on ASCII whitespace:
-    -   space, tab, newline, carriage return, vertical tab, form feed
--   Collapse runs of whitespace.
--   Ignore leading/trailing whitespace.
--   No empty fields.
--   No quoting or escaping.
--   No custom delimiter support.
+    # 2nd whitespace field
+    fields 2 file.txt
 
-------------------------------------------------------------------------
+    # 1st and 3rd whitespace fields
+    fields 1,3 file.txt
 
-## Selection Semantics
+    # passwd username + shell (colon-delimited)
+    fields -d: 1,7 /etc/passwd
 
--   Selection applied per line (1-based).
--   Fields emitted in ascending order.
--   Duplicates removed via normalized selection.
--   Selected fields joined by a single ASCII space.
--   If no fields selected on a line, emit nothing for that line.
--   Newline preserved if original line ended with newline and output
-    emitted.
-
-------------------------------------------------------------------------
-
-## Streaming Behavior
-
--   Processes input incrementally.
--   Only current line buffered.
--   Field views reference original line buffer (no field byte copying).
-
-------------------------------------------------------------------------
-
-## Error Handling
-
-Usage errors (exit 2):
-
--   Missing SPEC
--   Invalid option before `--`
--   Invalid SPEC grammar
-
-Runtime errors (exit 2):
-
--   File open failure
--   Read error
--   Stdout write failure
-
-SIGPIPE ignored internally to ensure deterministic runtime error
-reporting.
-
-------------------------------------------------------------------------
-
-## Week 1 Completion Criteria
-
--   `make test` passes with zero failures.
--   Shared range grammar exercised.
--   Deterministic newline and exit semantics validated.
+    # preserve empty fields in -d mode
+    printf 'a::c\n' | fields -d: 1..3

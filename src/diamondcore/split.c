@@ -1,4 +1,7 @@
-// split.c - ASCII whitespace field splitting utilities
+// split.c - field splitting utilities
+//
+// - dc_split_ws: ASCII whitespace collapsing splitter (non-empty fields only).
+// - dc_split_delim: single-byte delimiter splitter (preserves empty fields).
 
 #include "diamondcore.h"
 
@@ -46,6 +49,55 @@ size_t dc_split_ws(const uint8_t *line, size_t len, dc_field_view_t **out_fields
     v[cnt].ptr = line + start;
     v[cnt].len = flen;
     cnt++;
+  }
+
+  if (cnt == 0) {
+    free(v);
+    *out_fields = NULL;
+    return 0;
+  }
+
+  *out_fields = v;
+  return cnt;
+}
+
+size_t dc_split_delim(const uint8_t *line, size_t len, uint8_t delim,
+                      dc_field_view_t **out_fields) {
+  if (out_fields) *out_fields = NULL;
+  if (!out_fields || (!line && len != 0)) return 0;
+
+  dc_field_view_t *v = NULL;
+  size_t cap = 0;
+  size_t cnt = 0;
+
+  // Preserve empty fields:
+  // - consecutive delimiters => empty fields between
+  // - leading delimiter => leading empty field
+  // - trailing delimiter => trailing empty field
+  // - empty line => one empty field
+  size_t start = 0;
+  for (size_t i = 0; i <= len; i++) {
+    bool at_end = (i == len);
+    bool hit = (!at_end && line[i] == delim);
+    if (!at_end && !hit) continue;
+
+    if (cnt == cap) {
+      size_t ncap = cap ? cap * 2 : 8;
+      dc_field_view_t *nv = (dc_field_view_t *)realloc(v, ncap * sizeof(*nv));
+      if (!nv) {
+        free(v);
+        *out_fields = NULL;
+        return (size_t)-1;
+      }
+      v = nv;
+      cap = ncap;
+    }
+
+    v[cnt].ptr = line + start;
+    v[cnt].len = i - start;
+    cnt++;
+
+    start = i + 1; // ok even when at_end (len+1), loop ends
   }
 
   if (cnt == 0) {
