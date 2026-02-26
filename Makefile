@@ -6,6 +6,7 @@ TEST_DIR    := tests
 
 CC   ?= cc
 BASH ?= bash
+CLANG_FORMAT ?= clang-format
 
 # Point at a Bash source tree for headers (recommended)
 # Override: make BASH_SRC=/home/opsman/bash
@@ -39,7 +40,10 @@ REL_OBJDIR := $(BUILD_DIR)/obj.rel
 CORE_DBG_OBJS := $(patsubst $(SRC_DIR)/diamondcore/%.c,$(DBG_OBJDIR)/core/%.o,$(CORE_SRCS))
 CORE_REL_OBJS := $(patsubst $(SRC_DIR)/diamondcore/%.c,$(REL_OBJDIR)/core/%.o,$(CORE_SRCS))
 
-.PHONY: all debug rel clean test list-builtins
+# All C/C++ headers and sources under src/
+FORMAT_SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.h' \))
+
+.PHONY: all debug rel clean test list-builtins format format-check
 
 all: debug
 
@@ -75,6 +79,18 @@ $(BUILD_DIR)/%.debug.so: $(SRC_DIR)/builtins/builtin_%.c $(CORE_DBG_OBJS) | $(BU
 # Link each builtin (release)
 $(BUILD_DIR)/%.so: $(SRC_DIR)/builtins/builtin_%.c $(CORE_REL_OBJS) | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS_SO) -o $@ $^ $(LDLIBS)
+
+# ---- Formatting targets ----
+
+format:
+	@echo "Formatting source files..."
+	@$(CLANG_FORMAT) -i $(FORMAT_SRCS)
+
+format-check:
+	@echo "Checking formatting..."
+	@$(CLANG_FORMAT) --dry-run --Werror $(FORMAT_SRCS)
+
+# -----------------------------
 
 test: debug
 	BASH_BUILTINS_DIR="$$(cd "$(BUILD_DIR)" && pwd)" bats $(TEST_DIR)

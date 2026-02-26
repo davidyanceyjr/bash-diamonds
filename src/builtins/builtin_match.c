@@ -10,7 +10,6 @@
 #include <string.h>
 #include <signal.h>  // ANCHOR:SIGPIPE-INCLUDE
 
-#include "config.h"
 #include "builtins.h"
 #include "shell.h"
 
@@ -35,7 +34,7 @@ static int match_io_err(const char *msg) {
 }
 
 static int match_help(void) {
-  dc_print_usage_match(stdout);
+  dc_print_help_match(stdout);
   return 0;
 }
 

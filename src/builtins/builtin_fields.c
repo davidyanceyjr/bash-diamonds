@@ -9,8 +9,7 @@
 #include <string.h>
 #include <signal.h>
 
-// Bash loadable builtin headers (provided by bash source / headers)
-#include "config.h"
+// Bash loadable builtin headers (vendored minimal subset for loadables)
 #include "builtins.h"
 #include "shell.h"
 
@@ -36,7 +35,7 @@ static int fields_io_err(const char *msg) {
 }
 
 static int fields_help(void) {
-  dc_print_usage_fields(stdout);
+  dc_print_help_fields(stdout);
   return 0;
 }
 // === ANCHOR:ERROR-HELPERS-END ===

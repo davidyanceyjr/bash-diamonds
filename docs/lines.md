@@ -1,149 +1,62 @@
-# `lines` --- Diamond Builtin Specification (Week 1)
+# `lines`
 
-Select and emit specific 1-based input lines by numeric index or range.
-
-------------------------------------------------------------------------
-
-## Status (Week 1)
-
-Implemented and passing full test suite (`make test`).
-
-Load example:
-
-    enable -f ./build/lines.debug.so lines
-
-------------------------------------------------------------------------
+Select and emit specific **1-based** input lines by numeric index or range.
 
 ## Synopsis
 
     lines SPEC [--] [FILE...]
     lines --help
 
-------------------------------------------------------------------------
+## Options
 
-## Diamond Rules Compliance
+- `--help` print help to stdout and exit 0
+- `--` end option parsing
 
--   No duplication of full GNU tools
--   Minimal viable feature surface
--   Deterministic behavior
--   Pipeline-first (stdin → stdout)
--   No environment mutation
--   Shared range grammar across builtins
--   1-based indexing
--   Consistent exit codes
+## Arguments
 
-------------------------------------------------------------------------
+- `SPEC` range selection grammar (shared): see `docs/common-range-spec.md`
+- `FILE...` optional input files
 
-## Exit Codes
+## Selection semantics
 
-  Code   Meaning
-  ------ ------------------------------------------------------------------
-  0      At least one line emitted
-  1      Valid SPEC and readable input, but nothing emitted
-  2      Usage error, invalid SPEC, file I/O error, or stdout write error
+`SPEC` applies to the **concatenation** of all inputs.
 
-------------------------------------------------------------------------
+- Files are processed left-to-right.
+- `-` means stdin at that position.
+- If no `FILE` is provided, stdin is used.
+- Line numbering continues across files.
 
-## SPEC Grammar
+## Line model and newline behavior
 
-Supported forms:
+A “line” is either:
 
--   `N`
--   `N,M`
--   `a..b`
--   `..b`
--   `a..`
+- a byte sequence ending with `\n`, or
+- the final unterminated byte sequence at EOF.
 
-Whitespace is allowed around `,` and `..`.
+Output is written **verbatim** for selected lines:
 
-------------------------------------------------------------------------
+- newline-terminated lines remain newline-terminated
+- an unterminated final line remains unterminated
+- no newline is synthesized
 
-## Normalization Rules
+## Streaming behavior
 
-Handled by `dc_sel_parse_and_normalize()`:
+Streaming, line-at-a-time. May stop early when the selection has a finite maximum.
 
--   Sorted ascending
--   Duplicates removed
--   Overlapping ranges merged
--   Reversed ranges invalid
--   Leading zeros invalid
--   Bare `..` invalid
--   Trailing/double commas invalid
--   uint64 overflow invalid
+## Exit codes
 
-Invalid SPEC ⇒ exit 2.
+See `docs/common-exit-codes.md`.
 
-------------------------------------------------------------------------
+## Examples
 
-## Input Semantics
+    # 3rd line
+    lines 3 file.txt
 
--   FILEs processed in order.
--   `-` denotes stdin at that position.
--   If no FILEs provided, read stdin.
--   Files concatenated logically.
--   Line numbering continues across files.
+    # lines 1 and 3
+    lines 1,3 file.txt
 
-------------------------------------------------------------------------
+    # from line 10 onward
+    cmd | lines 10..
 
-## Line Definition
-
-A line is:
-
--   A byte sequence ending with `\n`
--   Or a final unterminated sequence at EOF
-
-Newline presence preserved exactly.
-
-------------------------------------------------------------------------
-
-## Output Semantics
-
--   Matching lines emitted in ascending order.
--   Bytes written exactly as read.
--   No additional newline added.
--   Unterminated final lines remain unterminated.
-
-------------------------------------------------------------------------
-
-## Streaming Behavior
-
--   Incremental processing.
--   No full-input buffering.
--   Early termination when possible via finite max optimization.
-
-------------------------------------------------------------------------
-
-## Error Handling
-
-Usage errors (exit 2):
-
--   Missing SPEC
--   Invalid option before `--`
--   Invalid SPEC grammar
-
-Runtime errors (exit 2):
-
--   File open failure
--   Read error
--   Stdout write failure (closed stdout)
-
-SIGPIPE ignored internally so write failures surface as controlled
-runtime errors.
-
-------------------------------------------------------------------------
-
-## Option Parsing Rules
-
--   Only `--help` recognized.
--   Other `-x` before `--` is usage error.
--   `--` ends option parsing.
--   After `--`, dash-leading filenames allowed.
--   `-` treated as stdin in FILE position.
-
-------------------------------------------------------------------------
-
-## Week 1 Completion Criteria
-
--   `make test` passes with zero failures.
--   `lines` and `fields` both implemented.
--   Shared range grammar exercised by both.
+    # allow dash-leading filenames
+    lines 1 -- -dashfile
