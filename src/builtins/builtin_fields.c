@@ -14,7 +14,7 @@
 #include "shell.h"
 
 __attribute__((unused))
-static const char *fields_shortdoc = "fields [-d DELIM] SPEC [--] [FILE...]";
+static const char *fields_shortdoc = "fields [--tsv] [-d DELIM] SPEC [--] [FILE...]";
 
 static char *fields_doc[] = {
   "Select and emit specific 1-based fields from each input line.",
@@ -42,7 +42,7 @@ static int fields_help(void) {
 
 // === ANCHOR:CORE-MAIN-BEGIN ===
 static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
-                       char *const *files, size_t file_count) {
+                       bool tsv_mode, char *const *files, size_t file_count) {
   dc_error_t err;
   dc_sel_t *sel = dc_sel_parse_and_normalize(spec, &err);
   if (!sel) {
@@ -59,6 +59,7 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
   }
 
   bool emitted_any = false;
+  const int join_ch = tsv_mode ? '\t' : ' ';
 
   for (;;) {
     dc_line_view_t v;
@@ -107,7 +108,7 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
       if (!dc_sel_wants(sel, idx)) continue;
 
       if (!first) {
-        if (fputc(' ', stdout) == EOF) {
+        if (fputc(join_ch, stdout) == EOF) {
           free(fields);
           dc_lr_close(lr);
           dc_sel_free(sel);
@@ -151,7 +152,7 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
 // === ANCHOR:CORE-MAIN-END ===
 
 // Parsing rules:
-// - Only --help and -d DELIM are recognized (before SPEC, unless after --).
+// - Only --help, --tsv and -d DELIM are recognized (before SPEC, unless after --).
 // - Any other -x token is an error unless after --, or token is exactly '-'.
 // - SPEC is required and is the first non-option token.
 __attribute__((visibility("default")))
@@ -166,6 +167,8 @@ int fields_builtin(WORD_LIST *list) {
 
   bool delim_mode = false;
   uint8_t delim = 0;
+
+  bool tsv_mode = false;
 
   size_t fcap = 8;
   size_t fcnt = 0;
@@ -186,6 +189,14 @@ int fields_builtin(WORD_LIST *list) {
       if (!end_opts && strcmp(tok, "--help") == 0) {
         rc = fields_help();
         goto out;
+      }
+      if (!end_opts && strcmp(tok, "--tsv") == 0) {
+        if (tsv_mode) {
+          rc = fields_usage_err("duplicate --tsv");
+          goto out;
+        }
+        tsv_mode = true;
+        continue;
       }
       if (!end_opts && strcmp(tok, "--") == 0) {
         end_opts = true;
@@ -260,7 +271,7 @@ int fields_builtin(WORD_LIST *list) {
     goto out;
   }
 
-  rc = fields_main(spec, delim_mode, delim, files, fcnt);
+  rc = fields_main(spec, delim_mode, delim, tsv_mode, files, fcnt);
 
 out:
   // === ANCHOR:CLEANUP-BEGIN ===
@@ -276,6 +287,6 @@ struct builtin fields_struct = {
   .function = fields_builtin,
   .flags = BUILTIN_ENABLED,
   .long_doc = fields_doc,
-  .short_doc = (char *)"fields [-d DELIM] SPEC [--] [FILE...]",
+  .short_doc = (char *)"fields [--tsv] [-d DELIM] SPEC [--] [FILE...]",
   .handle = 0,
 };
