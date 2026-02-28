@@ -7,7 +7,7 @@
 void dc_print_help_fields(FILE *out) {
   if (!out) out = stdout;
 
-  fputs("usage: fields [-d DELIM] SPEC [--] [FILE...]\n", out);
+  fputs("usage: fields [--tsv] [-d DELIM] SPEC [--] [FILE...]\n", out);
   fputs("       fields --help\n", out);
   fputs("\n", out);
   fputs("Select and emit specific 1-based fields from each input line.\n", out);
@@ -17,6 +17,7 @@ void dc_print_help_fields(FILE *out) {
   fputs("Options:\n", out);
   fputs("  --help        print this help and exit 0\n", out);
   fputs("  --            end option parsing\n", out);
+  fputs("  --tsv         join selected fields with a single TAB byte (0x09)\n", out);
   fputs("  -d DELIM      delimiter mode; DELIM must be exactly 1 byte\n", out);
   fputs("               accepted forms: -dX  or  -d X\n", out);
   fputs("\n", out);
@@ -38,7 +39,8 @@ void dc_print_help_fields(FILE *out) {
   fputs("\n", out);
 
   fputs("Output:\n", out);
-  fputs("  - Selected fields are emitted in ascending order, joined by a single space.\n", out);
+  fputs("  - Selected fields are emitted in ascending order.\n", out);
+  fputs("  - Join delimiter is a single space by default; with --tsv it is a single TAB byte.\n", out);
   fputs("  - If at least one field is selected for a line: emits that output line.\n", out);
   fputs("  - Output newline is preserved from the input line when an output line is emitted.\n", out);
   fputs("\n", out);
@@ -51,6 +53,7 @@ void dc_print_help_fields(FILE *out) {
   fputs("Examples:\n", out);
   fputs("  fields 2\n", out);
   fputs("  fields 1,3 file.txt\n", out);
+  fputs("  fields --tsv 2..3 file.txt\n", out);
   fputs("  fields -d: 1,7 /etc/passwd\n", out);
   fputs("  printf 'a::c\\n' | fields -d: 1..3\n", out);
 }

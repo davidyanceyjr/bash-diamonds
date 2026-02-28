@@ -7,13 +7,14 @@ With `-d`, splitting is **single-byte delimiter** based.
 
 ## Synopsis
 
-    fields [-d DELIM] SPEC [--] [FILE...]
+    fields [--tsv] [-d DELIM] SPEC [--] [FILE...]
     fields --help
 
 ## Options
 
 - `--help` print help to stdout and exit 0
 - `--` end option parsing
+- `--tsv` join selected fields with a single literal TAB byte (`0x09`) instead of a space
 - `-d DELIM` delimiter mode (`-dX` or `-d X`)
   - `DELIM` must be exactly **1 byte** after shell expansion
   - duplicate `-d` is a usage error
@@ -47,7 +48,10 @@ With `-d`, splitting is **single-byte delimiter** based.
 ## Output and newline behavior
 
 - Selected fields are emitted in ascending order.
-- Selected fields are joined with a single ASCII space (`0x20`).
+- Selected fields are joined with:
+  - a single ASCII space (`0x20`) by default
+  - a single TAB byte (`0x09`) with `--tsv`
+- No trailing join delimiter.
 - A line is emitted only if at least one selected field position exists for that line.
 - If a line is emitted:
   - input newline is preserved
@@ -68,6 +72,9 @@ See `docs/common-exit-codes.md`.
 
     # 1st and 3rd whitespace fields
     fields 1,3 file.txt
+
+    # TSV join
+    fields --tsv 1,3 file.txt
 
     # passwd username + shell (colon-delimited)
     fields -d: 1,7 /etc/passwd
