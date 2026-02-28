@@ -67,6 +67,7 @@ void dc_print_usage_match(FILE *out);
 void dc_print_usage_take(FILE *out);
 void dc_print_usage_table(FILE *out);
 void dc_print_usage_count(FILE *out);
+void dc_print_usage_filter(FILE *out);
 
 /* Builtin-specific full help printers */
 void dc_print_help_trim(FILE *out);
@@ -74,7 +75,9 @@ void dc_print_help_lines(FILE *out);
 void dc_print_help_fields(FILE *out);
 void dc_print_help_match(FILE *out);
 void dc_print_help_take(FILE *out);
-void dc_print_help_count(FILE *out);void dc_print_help_table(FILE *out);
+void dc_print_help_count(FILE *out);
+void dc_print_help_table(FILE *out);
+void dc_print_help_filter(FILE *out);
 
 /* Shared help fragments (diamondcore/help_common.c) */
 void dc_print_help_common_exit_codes(FILE *out);
