@@ -114,3 +114,21 @@ bash_with_lines() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ ^usage:\ lines ]]
 }
+
+@test "lines: dash-leading filename works without --" {
+  local dashf="$TMPDIR/-dashfile"
+  printf "x\ny\n" >"$dashf"
+
+  run bash_with_lines "lines 1 '$dashf'"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'x' ]
+}
+
+@test "lines: -- allows dash-leading filename" {
+  local dashf="$TMPDIR/-dashfile"
+  printf "x\ny\n" >"$dashf"
+
+  run bash_with_lines "lines 1 -- '$dashf'"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'x' ]
+}

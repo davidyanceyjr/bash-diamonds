@@ -21,6 +21,18 @@ bash_with_filter() {
   [[ "$output" == filter:* ]]
 }
 
+@test "filter: -- allows EXPR token beginning with '-'" {
+  run bash_with_filter 'printf "x\n" | filter -- "-1 == -1"'
+  [ "$status" -eq 0 ]
+  [ "$output" = "x" ]
+}
+
+@test "filter: missing EXPR is a usage error (exit 2)" {
+  run bash_with_filter 'filter 2>&1'
+  [ "$status" -eq 2 ]
+  [[ "$output" == filter:* ]]
+}
+
 @test "filter: basic string equality on field $1" {
   run bash_with_filter 'printf "ERROR\tfoo\nOK\tbar\n" | filter "\$1 == \"ERROR\""'
   [ "$status" -eq 0 ]

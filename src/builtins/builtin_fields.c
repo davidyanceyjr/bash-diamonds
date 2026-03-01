@@ -14,7 +14,7 @@
 #include "shell.h"
 
 __attribute__((unused))
-static const char *fields_shortdoc = "fields [--tsv] [-d DELIM] SPEC [--] [FILE...]";
+static const char *fields_shortdoc = "fields SPEC [FILE...]";
 
 static char *fields_doc[] = {
   "Select and emit specific 1-based fields from each input line.",
@@ -287,6 +287,6 @@ struct builtin fields_struct = {
   .function = fields_builtin,
   .flags = BUILTIN_ENABLED,
   .long_doc = fields_doc,
-  .short_doc = (char *)"fields [--tsv] [-d DELIM] SPEC [--] [FILE...]",
+  .short_doc = (char *)"fields SPEC [FILE...]",
   .handle = 0,
 };

@@ -11,6 +11,7 @@
 
 void dc_print_usage_fields(FILE *out) {
   if (!out) out = stdout;
-  fputs("usage: fields [--tsv] [-d DELIM] SPEC [--] [FILE...]\n", out);
+  fputs("usage: fields SPEC [FILE...]\n", out);
+  fputs("       fields [--tsv] [-d DELIM] SPEC [--] [FILE...]\n", out);
   fputs("       fields --help\n", out);
 }
