@@ -39,7 +39,7 @@ bash_with_fields() {
     fields --help
   "
   [ "$status" -eq 0 ]
-  [[ "$output" =~ ^usage:\ fields ]]
+  [[ "$output" == $'usage: fields SPEC [FILE...]\n'* ]]
 }
 
 @test "fields: unknown option before -- is usage error" {
@@ -47,6 +47,12 @@ bash_with_fields() {
 
   run bash_with_fields "fields -x 1 '$F1'"
   [ "$status" -eq 2 ]
+}
+
+@test "fields: -- after SPEC allows file operand beginning with '-'" {
+  run bash_with_fields "cd '$TMPDIR' || exit 99; printf 'a b\\n' > -x; fields 1 -- -x"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'a' ]
 }
 
 @test "fields: selects 1st field (whitespace mode)" {

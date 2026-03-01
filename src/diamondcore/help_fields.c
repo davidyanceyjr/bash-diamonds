@@ -7,7 +7,8 @@
 void dc_print_help_fields(FILE *out) {
   if (!out) out = stdout;
 
-  fputs("usage: fields [--tsv] [-d DELIM] SPEC [--] [FILE...]\n", out);
+  fputs("usage: fields SPEC [FILE...]\n", out);
+  fputs("       fields [--tsv] [-d DELIM] SPEC [--] [FILE...]\n", out);
   fputs("       fields --help\n", out);
   fputs("\n", out);
   fputs("Select and emit specific 1-based fields from each input line.\n", out);

@@ -31,6 +31,24 @@ bash_with_count() {
   [[ "$output" == usage:* ]]
 }
 
+@test "count: filename '--help' works as file operand without --" {
+  f="$TMPDIR/--help"
+  printf "a\nb\nc\n" >"$f"
+
+  run bash_with_count "count '$f'"
+  [ "$status" -eq 0 ]
+  [ "$output" = "3" ]
+}
+
+@test "count: filename '--help' works as file operand with --" {
+  f="$TMPDIR/--help"
+  printf "a\nb\nc\n" >"$f"
+
+  run bash_with_count "count -- '$f'"
+  [ "$status" -eq 0 ]
+  [ "$output" = "3" ]
+}
+
 @test "count: unknown -x before -- is usage error (exit 2)" {
   run bash_with_count 'count -x'
   [ "$status" -eq 2 ]
