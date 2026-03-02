@@ -1,86 +1,186 @@
+---
+
 # replace
 
-Streaming substitution primitive.
+## Name
 
-`replace` reads input line-by-line and emits only those lines in which at least one substitution occurred.
-This preserves the suite-wide exit-code contract where exit `1` means “no output”.
+replace — perform per-line substitution and emit only modified lines
+
+---
 
 ## Synopsis
 
-    replace [--literal] PATTERN REPLACEMENT [--] [FILE...]
-    replace --help
+```
+replace [--literal] PATTERN REPLACEMENT [--] [FILE...]
+replace --help
+```
+
+---
+
+## Description
+
+`replace` performs substitution on each input record (line).
+
+For every input record:
+
+* Matching and replacement operate on the **record content excluding the terminating newline byte (`0x0A`)**, if present.
+* If at least one substitution occurs in that record, the modified record is written to standard output.
+* If no substitution occurs, the record is not written.
+
+`replace` never adds, removes, or modifies record delimiters.
+If an input record was terminated by a newline byte, the emitted record will be terminated by a newline byte.
+If the final input record is unterminated, the emitted record remains unterminated.
+
+---
 
 ## Modes
 
-### Default mode (regex)
-- `PATTERN` is a POSIX Extended Regular Expression (ERE).
-- Matching is performed per-line.
-- Replaces all non-overlapping matches within a line.
+### Default (regex mode)
+
+`PATTERN` is interpreted as a POSIX Extended Regular Expression (ERE).
+
+* All non-overlapping matches within a record are replaced.
+* Matching is performed left-to-right.
+* After a replacement, scanning resumes at the end of the replaced span.
+* Zero-length matches must advance at least one byte to prevent infinite loops.
 
 ### Literal mode
-- `--literal`
-- `PATTERN` is treated as an exact byte sequence (no regex interpretation).
-- Matching is byte-wise.
 
-## Replacement semantics
-- `REPLACEMENT` is a literal byte sequence.
-- No escape processing.
-- No backreferences in v1.
+```
+--literal
+```
 
-## Output behavior
-Per input line:
-- If the line contains one or more matches:
-  - emit the substituted line
-  - preserve whether the input line ended in `'\n'`
-- If the line contains no matches:
-  - emit nothing for that line
+`PATTERN` is treated as an exact byte sequence.
 
-No trailing whitespace/delimiters are added. Byte content is preserved except for the performed substitutions.
+* All non-overlapping occurrences are replaced.
+* Matching proceeds left-to-right.
+* Empty `PATTERN` is a usage error.
 
-## Streaming behavior
-- Pure streaming, line-at-a-time.
-- Only the current line may be buffered.
-- Multi-file input is processed left-to-right.
+---
 
-## Exit codes
-- `0` if at least one line was emitted (i.e., at least one replacement occurred)
-- `1` if no replacements occurred in the entire run (no output)
-- `2` on:
-  - usage error
-  - invalid regex
-  - I/O error (including stdout write failure)
+## Replacement
 
-## Strict option parsing
-- `--help` prints help to stdout and exits 0.
-- `--` ends option parsing.
-- Unknown `-x` before `--` (other than literal `-`) exits 2.
-- `--literal` must appear before `PATTERN`.
-- Duplicate `--literal` is a usage error (exit 2).
+`REPLACEMENT` is treated as literal bytes.
 
-## Edge cases
-### Empty PATTERN
-Usage error, exit 2.
+* No escape sequences are processed.
+* No backreferences are supported.
+* Empty `REPLACEMENT` is allowed and deletes matches.
 
-### Zero-length regex matches
-Must not infinite-loop. Implementations must advance at least one byte after a zero-length match.
+---
 
-### Binary input
-Allowed. Operates on raw bytes with the suite line model.
+## Input
+
+`FILE...` specifies input files processed in order.
+
+If no files are provided:
+
+* Standard input is read.
+
+A file operand of `-` means standard input at that position.
+
+File open or read errors are fatal (exit 2).
+
+---
+
+## Output
+
+For each input record:
+
+* If ≥1 substitution occurred: emit the modified record.
+* If no substitution occurred: emit nothing.
+
+Output preserves:
+
+* All record content bytes except those replaced.
+* The presence or absence of the terminating newline byte.
+
+No newline is synthesized.
+
+---
+
+## Exit Status
+
+| Code | Meaning                                                          |
+| ---- | ---------------------------------------------------------------- |
+| 0    | At least one record emitted (≥1 substitution occurred somewhere) |
+| 1    | No substitutions occurred (no output)                            |
+| 2    | Error (usage, invalid regex, I/O error, stdout write failure)    |
+
+---
+
+## Strict Option Parsing
+
+`replace` follows the Bash Diamonds strict parsing rules:
+
+* `--help` prints usage to stdout and exits 0.
+* `--` ends option parsing.
+* Unknown options before `--` are usage errors (exit 2).
+* `--literal` must appear before `PATTERN`.
+* Duplicate `--literal` is a usage error.
+* Empty `PATTERN` is a usage error.
+
+If `PATTERN` begins with `-`, callers must use:
+
+```
+replace -- PATTERN REPLACEMENT ...
+```
+
+or:
+
+```
+replace --literal -- PATTERN REPLACEMENT ...
+```
+
+---
+
+## Binary Safety
+
+* Input is processed as raw bytes.
+* Records are delimited by `0x0A` when present.
+* Matching and replacement operate only on record content (excluding the delimiter).
+* Bytes other than `0x0A` have no special meaning unless interpreted by the regex engine.
+
+---
+
+## Streaming Model
+
+`replace` processes input record-by-record.
+
+* Only the current record is buffered.
+* The entire input is never buffered.
+* Behavior is deterministic across multiple files.
+
+---
+
+## SIGPIPE Handling
+
+The builtin ignores `SIGPIPE` internally.
+
+If writing to stdout fails:
+
+* `replace` exits with status 2.
+
+---
 
 ## Examples
 
-Replace digits with `X` (regex mode), emitting only matching lines:
+Replace all occurrences of `foo` with `bar`:
 
-    replace '[0-9]+' X file.txt
+```
+replace foo bar file.txt
+```
 
-Literal replacement:
+Delete all digits from input:
 
-    replace --literal foo bar file.txt
+```
+replace '[0-9]' '' data.txt
+```
 
-Multiple files:
+Literal replacement of `--` with `:`:
 
-    replace error ERROR log1 log2
+```
+replace --literal -- -- : file.txt
+```
 
-End option parsing (filename begins with '-'):
+---
 
-    replace --literal foo bar -- -input.txt

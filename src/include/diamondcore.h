@@ -1,3 +1,6 @@
+/* src/include/diamondcore.h */
+/* DROP-IN: restore original header structure and add replace declarations only */
+
 #ifndef DIAMONDCORE_H
 #define DIAMONDCORE_H
 
@@ -64,6 +67,7 @@ void dc_print_usage_trim(FILE *out);
 void dc_print_usage_lines(FILE *out);
 void dc_print_usage_fields(FILE *out);
 void dc_print_usage_match(FILE *out);
+void dc_print_usage_replace(FILE *out); /* NEW */
 void dc_print_usage_take(FILE *out);
 void dc_print_usage_table(FILE *out);
 void dc_print_usage_count(FILE *out);
@@ -74,6 +78,7 @@ void dc_print_help_trim(FILE *out);
 void dc_print_help_lines(FILE *out);
 void dc_print_help_fields(FILE *out);
 void dc_print_help_match(FILE *out);
+void dc_print_help_replace(FILE *out);  /* NEW */
 void dc_print_help_take(FILE *out);
 void dc_print_help_count(FILE *out);
 void dc_print_help_table(FILE *out);

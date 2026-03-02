@@ -519,7 +519,9 @@ static void detect_global_anchors(const char *pat, size_t len,
 
 /* Public API */
 
-bool dc_regex_compile(dc_regex_t **out_re, const char *pattern, char errbuf[256]) {
+bool dc_regex_compile(dc_regex_t **out_re,
+                      const char *pattern,
+                      char errbuf[256]) {
   if (errbuf) errbuf[0] = '\0';
   if (!out_re || !pattern) return false;
 
@@ -538,10 +540,14 @@ bool dc_regex_compile(dc_regex_t **out_re, const char *pattern, char errbuf[256]
   re->prog_len = 0;
   re->classes = NULL;
   re->class_len = 0;
+  re->start_pc = 0;
+  re->anchor_start = false;
+  re->anchor_end = false;
 
   bool bol = false, eol = false;
   size_t start = 0, end = plen;
   detect_global_anchors(pattern, plen, &bol, &eol, &start, &end);
+
   re->anchor_start = bol;
   re->anchor_end = eol;
 
@@ -599,6 +605,7 @@ bool dc_regex_compile(dc_regex_t **out_re, const char *pattern, char errbuf[256]
   plist_free(&f.out);
 
   re->start_pc = f.start;
+
   *out_re = re;
   return true;
 }
@@ -620,21 +627,44 @@ typedef struct {
   int cap;
 } slist_t;
 
-static bool slist_init(slist_t *sl, int cap) {
-  sl->pcs = (int *)malloc((size_t)cap * sizeof(int));
-  if (!sl->pcs) return false;
-  sl->n = 0; sl->cap = cap;
+static bool slist_init(slist_t *l, int cap) {
+  l->pcs = (int *)calloc((size_t)cap, sizeof(int));
+  if (!l->pcs) { l->n = 0; l->cap = 0; return false; }
+  l->n = 0;
+  l->cap = cap;
   return true;
 }
-static void slist_reset(slist_t *sl) { sl->n = 0; }
-static void slist_free(slist_t *sl) { free(sl->pcs); sl->pcs = NULL; sl->n = sl->cap = 0; }
-static bool slist_push(slist_t *sl, int pc) { if (sl->n >= sl->cap) return false; sl->pcs[sl->n++] = pc; return true; }
 
-static bool list_has_match(const dc_regex_t *re, const slist_t *sl) {
-  for (int i = 0; i < sl->n; i++) if (re->prog[sl->pcs[i]].op == I_MATCH) return true;
+static void slist_free(slist_t *l) {
+  if (!l) return;
+  free(l->pcs);
+  l->pcs = NULL;
+  l->n = 0;
+  l->cap = 0;
+}
+
+static void slist_reset(slist_t *l) {
+  if (!l) return;
+  l->n = 0;
+}
+
+static bool slist_push(slist_t *l, int pc) {
+  if (l->n >= l->cap) return false;
+  l->pcs[l->n++] = pc;
+  return true;
+}
+
+static bool list_has_match(const dc_regex_t *re, const slist_t *l) {
+  if (!re || !l) return false;
+  for (int i = 0; i < l->n; i++) {
+    int pc = l->pcs[i];
+    if (pc < 0 || pc >= re->prog_len) continue;
+    if (re->prog[pc].op == I_MATCH) return true;
+  }
   return false;
 }
 
+/* add state via epsilon closure */
 static bool addstate(const dc_regex_t *re,
                      slist_t *dst,
                      uint32_t *mark,
@@ -644,9 +674,12 @@ static bool addstate(const dc_regex_t *re,
                      size_t subj_len,
                      uint64_t *steps,
                      bool *limit) {
+  if (!re || !dst) return false;
+
   work_t stack[DC_REGEX_MAX_ACTIVE_STATES];
   int sp = 0;
 
+  if (sp >= DC_REGEX_MAX_ACTIVE_STATES) { *limit = true; return false; }
   stack[sp++] = (work_t){ .pc = pc, .pos = pos };
 
   while (sp > 0) {
@@ -781,6 +814,122 @@ bool dc_regex_match_line(const dc_regex_t *re,
   }
 
 out:
+  slist_free(&clist);
+  slist_free(&nlist);
+  free(mark);
+  if (exec_limit_exceeded) *exec_limit_exceeded = limit;
+  return false;
+}
+
+/* -----------------------------------------------------------------------------
+ * NEW API: dc_regex_find_next
+ *
+ * This is implemented strictly as an additive API on top of the existing VM:
+ * - It does not change dc_regex_compile() nor dc_regex_match_line().
+ * - It searches left-to-right from start_at.
+ * - For the first start position that can reach MATCH, it returns the earliest
+ *   end position (i.e., first time MATCH appears during the scan for that start).
+ * - Zero-length matches are allowed (out_start==out_end).
+ * -----------------------------------------------------------------------------
+ */
+bool dc_regex_find_next(const dc_regex_t *re,
+                        const uint8_t *subject,
+                        size_t subject_len,
+                        size_t start_at,
+                        size_t *out_start,
+                        size_t *out_end,
+                        bool *exec_limit_exceeded) {
+  if (exec_limit_exceeded) *exec_limit_exceeded = false;
+  if (!re) return false;
+  if (!subject && subject_len != 0) return false;
+  if (start_at > subject_len) return false;
+
+  /* If pattern is anchored to start-of-line, only allow matching at 0. */
+  if (re->anchor_start && start_at != 0) return false;
+
+  uint32_t *mark = (uint32_t *)calloc((size_t)re->prog_len, sizeof(uint32_t));
+  if (!mark) return false;
+
+  slist_t clist, nlist;
+  if (!slist_init(&clist, DC_REGEX_MAX_ACTIVE_STATES) ||
+      !slist_init(&nlist, DC_REGEX_MAX_ACTIVE_STATES)) {
+    free(mark);
+    if (clist.pcs) slist_free(&clist);
+    return false;
+  }
+
+  uint32_t gen = 1;
+  uint64_t steps = 0;
+  bool limit = false;
+
+  size_t s_min = start_at;
+  size_t s_max = subject_len;
+  if (re->anchor_start) { s_min = 0; s_max = 0; }
+
+  for (size_t s = s_min; s <= s_max; s++) {
+    slist_reset(&clist);
+    slist_reset(&nlist);
+
+    if (!addstate(re, &clist, mark, gen++, re->start_pc, s, subject_len, &steps, &limit)) {
+      limit = true;
+      break;
+    }
+
+    /* Zero-length match at s */
+    if (list_has_match(re, &clist)) {
+      if (out_start) *out_start = s;
+      if (out_end) *out_end = s;
+      slist_free(&clist);
+      slist_free(&nlist);
+      free(mark);
+      return true;
+    }
+
+    for (size_t i = s; i < subject_len; i++) {
+      slist_reset(&nlist);
+
+      for (int si = 0; si < clist.n; si++) {
+        int pc = clist.pcs[si];
+
+        steps++;
+        if (steps > DC_REGEX_MAX_STEPS) { limit = true; break; }
+
+        inst_t ins = re->prog[pc];
+        uint8_t b = subject[i];
+
+        if (ins.op == I_CHAR) {
+          if (ins.c == b) {
+            if (!addstate(re, &nlist, mark, gen, ins.x, i + 1, subject_len, &steps, &limit)) break;
+          }
+        } else if (ins.op == I_ANY) {
+          if (!addstate(re, &nlist, mark, gen, ins.x, i + 1, subject_len, &steps, &limit)) break;
+        } else if (ins.op == I_CLASS) {
+          if (ins.cls < (uint16_t)re->class_len && bitset_test(re->classes[ins.cls].bits, b)) {
+            if (!addstate(re, &nlist, mark, gen, ins.x, i + 1, subject_len, &steps, &limit)) break;
+          }
+        }
+      }
+
+      if (limit) break;
+
+      gen++;
+      slist_t tmp = clist; clist = nlist; nlist = tmp;
+
+      if (list_has_match(re, &clist)) {
+        if (out_start) *out_start = s;
+        if (out_end) *out_end = i + 1;
+        slist_free(&clist);
+        slist_free(&nlist);
+        free(mark);
+        return true;
+      }
+
+      if (clist.n == 0) break;
+    }
+
+    if (limit) break;
+  }
+
   slist_free(&clist);
   slist_free(&nlist);
   free(mark);

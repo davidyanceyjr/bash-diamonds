@@ -30,6 +30,20 @@ bool dc_regex_match_line(const dc_regex_t *re,
                          size_t subject_len,
                          bool *exec_limit_exceeded);
 
+/* Find next match in SUBJECT starting at START_AT.
+ * Returns true and sets [*out_start, *out_end) on match.
+ * Returns false on no match (or on exec limit exceeded; see flag).
+ *
+ * This does NOT support capturing; it finds only the overall match span.
+ */
+bool dc_regex_find_next(const dc_regex_t *re,
+                        const uint8_t *subject,
+                        size_t subject_len,
+                        size_t start_at,
+                        size_t *out_start,
+                        size_t *out_end,
+                        bool *exec_limit_exceeded);
+
 #ifdef __cplusplus
 }
 #endif
