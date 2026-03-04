@@ -330,6 +330,13 @@ static int replace_builtin(WORD_LIST *list) {
   if (re) dc_regex_free(re);
   free(files);
 
+  if (emitted_any) {
+    if (fflush(stdout) != 0 || ferror(stdout)) {
+      signal(SIGPIPE, old_sigpipe);
+      return 2;
+    }
+  }
+
   signal(SIGPIPE, old_sigpipe);
   return emitted_any ? 0 : 1;
 }

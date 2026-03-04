@@ -147,6 +147,13 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
 
   dc_lr_close(lr);
   dc_sel_free(sel);
+
+  if (emitted_any) {
+    if (fflush(stdout) != 0 || ferror(stdout)) {
+      return fields_io_err("write error");
+    }
+  }
+
   return emitted_any ? 0 : 1;
 }
 // === ANCHOR:CORE-MAIN-END ===

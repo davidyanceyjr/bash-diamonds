@@ -289,6 +289,12 @@ static int table_pass_emit(char *const *files, size_t file_count,
 
   dc_lr_close(lr);
 
+  if (any) {
+    if (fflush(stdout) != 0 || ferror(stdout)) {
+      return table_io_err("write error");
+    }
+  }
+
   if (out_any) *out_any = any;
   return 0;
 }

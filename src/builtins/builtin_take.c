@@ -80,6 +80,13 @@ static int take_main(uint64_t n, uint64_t s, char *const *files, size_t file_cou
   }
 
   dc_lr_close(lr);
+
+  if (emitted > 0) {
+    if (fflush(stdout) != 0 || ferror(stdout)) {
+      return take_io_err("write error");
+    }
+  }
+
   return (emitted > 0) ? 0 : 1;
 }
 

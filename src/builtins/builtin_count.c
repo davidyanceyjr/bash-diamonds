@@ -67,7 +67,7 @@ static int count_main(char *const *files, size_t file_count) {
   if (printf("%" PRIu64 "\n", count) < 0) {
     return count_io_err("write error");
   }
-  if (fflush(stdout) == EOF) {
+  if (fflush(stdout) == EOF || ferror(stdout)) {
     return count_io_err("write error");
   }
 

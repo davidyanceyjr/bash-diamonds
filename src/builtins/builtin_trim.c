@@ -95,6 +95,13 @@ static int trim_main(char *const *files, size_t file_count) {
   }
 
   dc_lr_close(lr);
+
+  if (emitted_any) {
+    if (fflush(stdout) != 0 || ferror(stdout)) {
+      return trim_io_err("write error");
+    }
+  }
+
   return emitted_any ? 0 : 1;
 }
 
