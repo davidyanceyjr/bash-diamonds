@@ -1,215 +1,103 @@
-```markdown
 # Bash Diamonds — Project Specification (Normative)
 
-This document defines the **developer-side normative contract** for the Bash Diamonds suite.
+This document is the single normative contract for the Bash Diamonds suite.
 
-It governs:
-
+It defines:
 - Suite-wide invariants
-- Exit semantics
-- Input/output guarantees
-- Diagnostic behavior
-- Builtin classification and stability
+- CLI and exit semantics
+- Builtin stability status
+- Governance and change discipline
 - Conformance expectations
 
-If any other documentation conflicts with this document, this document prevails.
-
-User-facing guidance, composition examples, and philosophy are defined in `docs/diamond-suite.md`.
-
----
+If any other repository document conflicts with this file, this file prevails.
 
 ## 1. Document Roles and Authority
 
 ### 1.1 Normative Contract
 
-`project-spec.md` is the authoritative suite contract.
+`docs/project-spec.md` is the only normative suite contract.
 
-It defines cross-suite invariants and stability guarantees.
+### 1.2 User Handbook (Non-Normative)
 
-### 1.2 Builtin Specifications
+`docs/diamond-suite.md` is the user-facing handbook.
 
-Each builtin has its own specification document.
+It may explain workflows and provide examples, but it does not define contract behavior.
 
-That document:
+### 1.3 Other Docs
 
-- Defines complete behavior for that builtin.
-- May extend suite invariants.
-- Must not contradict suite invariants.
-- Defines exit code 1 semantics if applicable.
+Other files under `docs/` are implementation notes and references.
 
-### 1.3 Handbook (Non-Normative)
-
-`diamond-suite.md`:
-
-- Is user-facing.
-- Describes purpose, concepts, and composition patterns.
-- Contains executable examples.
-- Is not normative.
-
-If handbook examples conflict with this document, the handbook is incorrect.
-
----
+They are not authoritative for behavior. During migration, they may lag behind this contract.
 
 ## 2. Suite-Wide Behavioral Invariants
 
-The following invariants apply to all builtins.
-
----
+The following invariants apply to all builtins unless this document states otherwise.
 
 ### 2.1 Streaming Model
 
-- Builtins operate in a streaming, line-oriented manner.
-- Tools must not buffer entire input unless explicitly documented.
-- Input is processed sequentially.
-- No implicit sorting or reordering is allowed unless explicitly specified.
+- Builtins process input as a stream.
+- Builtins must not buffer full input unless explicitly required by this contract.
+- Processing order is sequential and stable.
+- No implicit reordering unless explicitly specified.
 
----
+### 2.2 Line and Newline Model
 
-### 2.2 Line Model and Newline Preservation
+- Input is raw bytes segmented by `\n`.
+- Unterminated final lines must be processed.
+- Builtins emitting original or derived lines must preserve newline termination state.
+- Builtins must not invent trailing newlines unless explicitly defined.
 
-- Input is treated as raw byte streams segmented by `\n`.
-- If the final input line is not newline-terminated, it must still be processed.
-- If a builtin emits an input line unchanged or derived directly from it, it must preserve whether that line ended with `\n`.
-- Builtins must not synthesize or strip trailing newlines unless explicitly defined in their specification.
+### 2.3 Byte Model
 
-This newline preservation rule is part of the contract.
-
----
-
-### 2.3 Byte Model and Locale Independence
-
-- Tools operate on raw bytes.
-- No implicit UTF-8 or Unicode semantics are applied.
-- No locale-dependent behavior is permitted.
-- All comparisons and processing are byte-based unless explicitly documented.
-
----
+- Processing is byte-oriented, not Unicode/locale semantic.
+- No implicit normalization.
+- Comparisons are byte-based unless explicitly stated.
 
 ### 2.4 Input Sources
 
-- If no file arguments are provided, input is read from standard input.
-- A literal `-` represents standard input.
-- Multiple files are processed strictly in the order provided.
-- File open failure must:
-  - Emit a diagnostic to stderr.
-  - Exit with status 2.
-- Fatal I/O errors must terminate processing.
+- With no files, input is stdin.
+- `-` denotes stdin at that position.
+- Multiple inputs are processed in given order.
+- File open/read failures must diagnose to stderr and exit `2`.
 
----
+### 2.5 Option Parsing
 
-### 2.5 Option Parsing and Help Behavior
-
-All builtins must conform to the following:
-
-- `--help`:
-  - Prints help text to stdout.
-  - Exits with status 0.
-  - Performs no further processing.
-- Unknown options:
-  - Emit a diagnostic to stderr.
-  - Exit with status 2.
+- `--help` prints help to stdout and exits `0`.
+- Unknown option before `--` is a usage error and exits `2`.
 - `--` terminates option parsing.
-- Options must not be accepted after positional arguments unless explicitly documented.
+- Options are not accepted after positionals unless explicitly documented here.
 
-The exact wording of help text is defined per builtin.
+### 2.6 Positional-Primary CLI
 
----
+- Each builtin's primary action must be available via positional arguments.
+- Flags may refine behavior.
+- Positional form is the preferred interface.
 
-### 2.6 Command-Line Interface Conventions (Positional Defaults)
+### 2.7 Exit Codes
 
-The Bash Diamonds suite prioritizes readable pipelines. Each builtin must support a positional-argument invocation that covers the common use case.
+Only these exit codes are allowed:
 
-#### 2.6.1 80/20 Rule
+- `0`: success, output emitted
+- `1`: success, no output emitted
+- `2`: usage/runtime/I/O/write failure
 
-For each builtin:
+No other exit codes are permitted.
 
-- The most common operation (the “80% use case”) must be expressible **without flags** using positional arguments.
-- Flags exist to refine or modify behavior (the “20% use case”).
-- A builtin must not require a flag to specify its primary action.
+### 2.8 Stdout Failure Handling
 
-This is a suite-wide contract requirement.
-
-#### 2.6.2 Canonical Positional Form
-
-Unless explicitly documented otherwise in the builtin specification, the canonical invocation form is:
-
-```
-
-<tool> [PRIMARY] [FILES...]
-
-```
-
-Where:
-
-- `PRIMARY` is the primary selector/argument for the tool (e.g., a field selector, a pattern, a count).
-- `FILES...` are optional input sources; if omitted, stdin is used.
-
-#### 2.6.3 Compatibility of Flags
-
-If a builtin previously required flags for its primary action (e.g., `-f`, `-m`, `-n`):
-
-- The flagged form may remain supported as an alias for compatibility.
-- The positional form is the preferred interface and must be documented as such.
-- If both positional and flagged forms are present and conflict, the builtin specification must define precedence deterministically.
-
-#### 2.6.4 `--help` Must Document Positional Defaults First
-
-Help output must present the positional form as the primary usage line, followed by optional flags and extended forms.
-
-Example pattern:
-
-```
-
-Usage: fields <selector> [FILE...]
-...
-Options:
-...
-
-```
-
----
-
-### 2.7 Exit Code Semantics (Preserved)
-
-All builtins must use only the following exit codes:
-
-- **0** — successful execution with output produced.
-- **1** — successful execution with no output produced.
-- **2** — usage error, runtime error, I/O error, or write failure.
-
-Write failures to stdout (including broken pipe conditions) must result in exit code 2.
-
-No builtin may return any other exit code.
-
----
-
-### 2.8 Stdout and Write Failure Handling
-
-- Builtins must detect write failures to stdout.
-- Write failure must result in exit code 2.
-- A builtin must not return success (0 or 1) if output flushing fails.
-
----
+- Stdout write failures must produce exit `2`.
+- Builtins must detect terminal stdout failure.
+- Builtins must not return `0`/`1` if final `fflush(stdout)` or `ferror(stdout)` indicates failure.
 
 ### 2.9 Diagnostics
 
-- Diagnostics must be written exclusively to stderr.
-- Normal output must never be written to stderr.
-- Diagnostics must be deterministic.
-- File-related errors must identify the file.
-- Usage errors must clearly describe misuse.
-
-Diagnostic prefix format may be defined per builtin but must remain consistent within that builtin.
-
----
+- Diagnostics go to stderr only.
+- Normal output goes to stdout only.
+- Diagnostics must be deterministic and actionable.
 
 ## 3. Builtin Inventory and Stability
 
-This section defines the authoritative suite inventory.
-
-### 3.1 Stable (Part of v1.0 Contract)
-
-The following builtins are considered stable:
+### 3.1 Stable (v1.0 Contract)
 
 - lines
 - fields
@@ -220,22 +108,13 @@ The following builtins are considered stable:
 - count
 - filter
 
-Stable builtins guarantee:
-
-- Option names and meanings are stable (including positional defaults defined in §2.6).
-- Output format is stable.
-- Exit semantics are stable.
-- Documented behavior will not change without versioning.
-
----
+Stable builtins guarantee CLI/output/exit compatibility unless versioned.
 
 ### 3.2 Preview
 
-- replace  *(if applicable)*
+- replace
 
 Preview builtins are functional but may evolve before stabilization.
-
----
 
 ### 3.3 Planned
 
@@ -243,60 +122,33 @@ Preview builtins are functional but may evolve before stabilization.
 - alone
 - arrange
 
-Planned builtins are not part of the contract.
+Planned builtins are outside the contract.
 
----
+## 4. Governance and Change Discipline
 
-## 4. Development Iteration Model
+### 4.1 Required Update Rule
 
-Development follows this loop:
+Any contract-affecting change must update this file and tests in the same change set.
 
-1. Define or update specification.
-2. Implement behavior.
-3. Add or update tests.
-4. Update builtin documentation.
-5. Update handbook examples if relevant.
-6. Merge feature branch.
+Contract-affecting includes changes to:
+- Streaming/newline/byte semantics
+- CLI parsing or positional interface
+- Exit code behavior
+- Stability classification
 
-Behavior must not exceed specification.
+### 4.2 Handbook Sync Rule
 
-Specification must not promise behavior not implemented.
+If user-facing behavior or examples change, update `docs/diamond-suite.md` in the same PR.
 
-If a change affects command-line surface area, it must maintain the positional-default conventions in §2.6.
+### 4.3 Merge Gate
 
----
+A merge to `main` must satisfy:
+- Contract/docs are internally consistent
+- Tests pass
+- Stability inventory is accurate
 
 ## 5. Conformance
 
-The test suite validates:
+The test suite is the executable conformance check for this contract.
 
-- Suite-wide invariants.
-- Builtin-specific behavior.
-- Exit semantics.
-- Newline preservation.
-- Deterministic diagnostics.
-- Stdout write failure handling.
-- Positional-default behavior for common use cases (where applicable), and any documented compatibility forms.
-
-Tests validate contract adherence.  
-They do not imply performance or production representativeness.
-
----
-
-## 6. Contract Changes
-
-Changes to:
-
-- Suite invariants
-- CLI positional-default conventions
-- Exit semantics
-- Stability classification
-- Byte model
-- Newline preservation rules
-
-constitute contract-level modifications and must be explicitly updated in this document.
-
----
-
-# End of Project Specification
-```
+Tests validate behavior and invariants; they do not assert production performance representativeness.
