@@ -12,9 +12,10 @@ contract-preserving patches** over large refactors.
 
 Read these first and treat them as normative contracts:
 
--   `docs/project-spec.md` (suite-wide invariants and exit-code model)
--   `docs/development-governance.md` (workflow and doc roles)
--   `docs/<tool>.md` (per-builtin spec; one file per tool)
+-   `docs/project-spec.md` (the only normative suite contract)
+-   `docs/diamond-suite.md` (non-normative user handbook)
+
+Other files under `docs/` are reference material and may lag the contract.
 
 If documentation and code disagree:
 
@@ -42,7 +43,7 @@ If documentation and code disagree:
 When investigating behavior, scan files in this order:
 
 1.  `docs/project-spec.md`
-2.  `docs/<tool>.md`
+2.  `docs/diamond-suite.md`
 3.  `src/builtins/builtin_<tool>.c`
 4.  `src/diamondcore/*.c` (if referenced)
 5.  `tests/*.bats`
