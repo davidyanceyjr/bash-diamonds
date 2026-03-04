@@ -92,6 +92,13 @@ static int lines_main(const char *spec, char *const *files, size_t file_count) {
 
   dc_lr_close(lr);
   dc_sel_free(sel);
+
+  if (emitted) {
+    if (fflush(stdout) != 0 || ferror(stdout)) {
+      return lines_io_err("write error");
+    }
+  }
+
   return emitted ? 0 : 1;
 }
 
