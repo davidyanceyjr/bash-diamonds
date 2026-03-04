@@ -140,3 +140,12 @@ bash_with_fields() {
   [ "$status" -eq 0 ]
   [ "$output" = $'a\tb\nx\ty' ]
 }
+
+@test "fields: stdout write failure exits 2 (SIGPIPE ignored)" {
+  run bash --noprofile --norc -c "
+    enable -f '$FIELDS_SO' fields || exit 99
+    exec 1>&-
+    printf 'a b\n' | fields 1
+  "
+  [ "$status" -eq 2 ]
+}

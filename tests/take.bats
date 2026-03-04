@@ -78,3 +78,11 @@ bash_with_take() {
   [ "$status" -eq 2 ]
   [[ "$output" == take:* ]]
 }
+
+@test "take: stdout write failure exits 2 (SIGPIPE ignored)" {
+  run bash_with_take '
+    exec 1>&-
+    printf "a\n" | take 1
+  '
+  [ "$status" -eq 2 ]
+}

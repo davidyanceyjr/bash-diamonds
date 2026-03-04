@@ -132,3 +132,12 @@ bash_with_lines() {
   [ "$status" -eq 0 ]
   [ "$output" = $'x' ]
 }
+
+@test "lines: stdout write failure exits 2 (SIGPIPE ignored)" {
+  run bash --noprofile --norc -c "
+    enable -f '$LINES_SO' lines || exit 99
+    exec 1>&-
+    printf 'a\n' | lines 1
+  "
+  [ "$status" -eq 2 ]
+}
