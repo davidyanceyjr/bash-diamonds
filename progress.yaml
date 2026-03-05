@@ -4,9 +4,15 @@ project:
   status: active
 
 snapshot:
+<<<<<<< Updated upstream
   updated_utc: '2026-03-05T21:47:11Z'
   git:
     branch: rel-03-promote-replace-stable
+=======
+  updated_utc: '2026-03-05T22:08:45Z'
+  git:
+    branch: main
+>>>>>>> Stashed changes
     head: '9753494'
   window:
     completed: 15
