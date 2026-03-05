@@ -122,11 +122,7 @@ None.
 
 ### 3.4 Implemented but Non-Contract
 
-- freq
-- alone
-- arrange
-
-These builtins are implemented and may ship in development builds, but remain outside the v1.0 stability contract.
+None.
 
 ## 4. Governance and Change Discipline
 

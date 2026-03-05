@@ -28,25 +28,13 @@
     printf "%s\n" "$planned_body" | grep -qx "None."
     ! printf "%s\n" "$planned_body" | grep -q "^- "
 
-    non_contract="$(
-      awk '"'"'
-        /^### 3\.4 Implemented but Non-Contract$/ { in_section=1; next }
-        in_section && /^### / { in_section=0 }
-        in_section && /^- / { sub(/^- /, "", $0); print }
-      '"'"' docs/project-spec.md
-    )"
-    expected=$'"'"'freq\nalone\narrange'"'"'
-    [ "$non_contract" = "$expected" ]
-  '
-  [ "$status" -eq 0 ]
-}
-
-@test "spec inventory: implemented non-contract tools have builtin sources" {
-  run bash -c '
-    set -euo pipefail
-    for name in freq alone arrange; do
-      [ -f "src/builtins/builtin_${name}.c" ]
-    done
+    non_contract_body="$(awk '"'"'
+      /^### 3\.4 Implemented but Non-Contract$/ { in_section=1; next }
+      in_section && /^### / { in_section=0 }
+      in_section { print }
+    '"'"' docs/project-spec.md)"
+    printf "%s\n" "$non_contract_body" | grep -qx "None."
+    ! printf "%s\n" "$non_contract_body" | grep -q "^- "
   '
   [ "$status" -eq 0 ]
 }

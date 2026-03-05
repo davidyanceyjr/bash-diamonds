@@ -1,3 +1,0 @@
-# freq
-
-Future week implementation.

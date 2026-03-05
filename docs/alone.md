@@ -1,3 +1,0 @@
-# alone
-
-Future week implementation.
