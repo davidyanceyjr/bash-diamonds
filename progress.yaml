@@ -4,13 +4,13 @@ project:
   status: active
 
 snapshot:
-  updated_utc: '2026-03-05T17:33:59Z'
+  updated_utc: '2026-03-05T18:02:42Z'
   git:
     branch: main
-    head: '1eacbc7'
+    head: '0b77f98'
   window:
-    completed: 10
-    pending: 7
+    completed: 12
+    pending: 5
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
     - docs/diamond-suite.md (handbook + usage examples)
@@ -121,11 +121,11 @@ completed:
 
   - id: exp-01
     category: feature
-    title: Implement freq builtin (outside v1 contract: Planned)
+    title: Implement freq builtin (outside v1 contract: non-contract implemented)
     branch: main
     state: complete
     spec_refs:
-      - docs/project-spec.md#3-3-planned
+      - docs/project-spec.md#3-4-implemented-but-non-contract
     evidence:
       - src/builtins/builtin_freq.c
       - docs/freq.md
@@ -133,11 +133,11 @@ completed:
 
   - id: exp-02
     category: feature
-    title: Implement alone and arrange builtins (outside v1 contract: Planned)
+    title: Implement alone and arrange builtins (outside v1 contract: non-contract implemented)
     branch: main
     state: complete
     spec_refs:
-      - docs/project-spec.md#3-3-planned
+      - docs/project-spec.md#3-4-implemented-but-non-contract
     evidence:
       - src/builtins/builtin_alone.c
       - src/builtins/builtin_arrange.c
@@ -146,29 +146,28 @@ completed:
       - tests/alone.bats
       - tests/arrange.bats
 
-pending:
   - id: rel-01
     category: docs
     title: Reconcile builtin inventory in project-spec with implemented builtins
-    branch: tbd
-    state: pending
+    branch: main
+    state: complete
     spec_refs:
       - docs/project-spec.md#3-builtin-inventory-and-stability
-    rationale:
-      - Current contract lists freq/alone/arrange as Planned, while code/docs/tests/build artifacts exist.
+    evidence:
+      - docs/project-spec.md
+      - tests/spec_inventory.bats
 
   - id: rel-02
     category: docs
     title: Add README.md with build/test prerequisites and quickstart
-    branch: tbd
-    state: pending
+    branch: main
+    state: complete
     spec_refs:
       - docs/diamond-suite.md (handbook exists, but no repo-level README)
-    rationale:
-      - Repository currently lacks README.md; onboarding requires discovering docs/ manually.
-    depends_on:
-      - rel-01
+    evidence:
+      - README.md
 
+pending:
   - id: ci-01
     category: chore
     title: Add CI workflow to build and run Bats tests
@@ -224,7 +223,7 @@ pending:
     spec_refs:
       - docs/project-spec.md#3-builtin-inventory-and-stability
     rationale:
-      - Build currently auto-discovers and outputs .so for Planned builtins, which blurs v1 contract scope.
+      - Build currently auto-discovers and outputs .so for non-contract builtins, which blurs v1 contract scope.
     depends_on:
       - rel-01
       - pkg-01

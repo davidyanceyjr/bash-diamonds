@@ -118,11 +118,15 @@ Preview builtins are functional but may evolve before stabilization.
 
 ### 3.3 Planned
 
+None.
+
+### 3.4 Implemented but Non-Contract
+
 - freq
 - alone
 - arrange
 
-Planned builtins are outside the contract.
+These builtins are implemented and may ship in development builds, but remain outside the v1.0 stability contract.
 
 ## 4. Governance and Change Discipline
 
