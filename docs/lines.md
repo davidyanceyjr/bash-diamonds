@@ -7,10 +7,14 @@ Select and emit specific **1-based** input lines by numeric index or range.
     lines SPEC [--] [FILE...]
     lines --help
 
+Primary form is positional: `lines SPEC [--] [FILE...]`.
+
 ## Options
 
 - `--help` print help to stdout and exit 0
 - `--` end option parsing
+- unknown option before `--` is a usage error and exits `2`
+- use `--` before dash-leading file operands
 
 ## Arguments
 

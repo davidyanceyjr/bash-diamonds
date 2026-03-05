@@ -1,9 +1,11 @@
-# count
+# `count`
 
-## synopsis
+## Synopsis
 
 count [--] [FILE...]
 count --help
+
+Primary form is positional: `count [--] [FILE...]`.
 
 ## Description
 
@@ -15,12 +17,10 @@ A final unterminated line counts as a line.
 
 * `--help` print help to stdout and exit 0
 * `--` end option parsing
+* unknown option before `--` is a usage error and exits `2`
+* use `--` before dash-leading file operands
 
 No other options are supported.
-
-Strict option parsing:
-
-* Any `-x` token before `--` (other than literal `-`) is a usage error → exit 2.
 
 ## Arguments
 
@@ -47,7 +47,7 @@ Behavior:
 * On success, print the line count as base-10 unsigned decimal followed by a single newline.
 * Output is written to stdout only.
 
-## Exit codes
+## Exit Codes
 
 * `0` success (count printed; including `0`)
 * `2` usage/runtime error

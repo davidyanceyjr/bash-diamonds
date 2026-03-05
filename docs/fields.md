@@ -10,10 +10,14 @@ With `-d`, splitting is **single-byte delimiter** based.
     fields [--tsv] [-d DELIM] SPEC [--] [FILE...]
     fields --help
 
+Primary form is positional: `fields [--tsv] [-d DELIM] SPEC [--] [FILE...]`.
+
 ## Options
 
 - `--help` print help to stdout and exit 0
 - `--` end option parsing
+- unknown option before `--` is a usage error and exits `2`
+- use `--` before dash-leading file operands
 - `--tsv` join selected fields with a single literal TAB byte (`0x09`) instead of a space
 - `-d DELIM` delimiter mode (`-dX` or `-d X`)
   - `DELIM` must be exactly **1 byte** after shell expansion

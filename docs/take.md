@@ -7,10 +7,14 @@ Emit a forward-only slice of input lines.
     take N [S] [--] [FILE...]
     take --help
 
+Primary form is positional: `take N [S] [--] [FILE...]`.
+
 ## Options
 
 - `--help` print help to stdout and exit 0
 - `--` end option parsing
+- unknown option before `--` is a usage error and exits `2`
+- use `--` before dash-leading file operands
 
 ## Arguments
 

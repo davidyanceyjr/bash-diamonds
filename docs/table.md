@@ -7,10 +7,14 @@ Format whitespace-delimited text into aligned columns for human output.
     table [--] [FILE...]
     table --help
 
+Primary form is positional: `table [--] [FILE...]`.
+
 ## Options
 
 - `--help` print help to stdout and exit 0
 - `--` end option parsing
+- unknown option before `--` is a usage error and exits `2`
+- use `--` before dash-leading file operands
 
 ## Arguments
 

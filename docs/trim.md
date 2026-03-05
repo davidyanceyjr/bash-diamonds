@@ -9,10 +9,14 @@ Lines that become empty after trimming are not emitted.
     trim [--] [FILE...]
     trim --help
 
+Primary form is positional: `trim [--] [FILE...]`.
+
 ## Options
 
 - `--help` print help to stdout and exit 0
 - `--` end option parsing
+- unknown option before `--` is a usage error and exits `2`
+- use `--` before dash-leading file operands
 
 ## Arguments
 

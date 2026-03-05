@@ -15,6 +15,8 @@ replace [--literal] PATTERN REPLACEMENT [--] [FILE...]
 replace --help
 ```
 
+Primary form is positional: `replace [--literal] PATTERN REPLACEMENT [--] [FILE...]`.
+
 ---
 
 ## Description
@@ -115,6 +117,7 @@ No newline is synthesized.
 * `--help` prints usage to stdout and exits 0.
 * `--` ends option parsing.
 * Unknown options before `--` are usage errors (exit 2).
+* Use `--` before dash-leading file operands.
 * `--literal` must appear before `PATTERN`.
 * Duplicate `--literal` is a usage error.
 * Empty `PATTERN` is a usage error.
@@ -183,4 +186,3 @@ replace --literal -- -- : file.txt
 ```
 
 ---
-
