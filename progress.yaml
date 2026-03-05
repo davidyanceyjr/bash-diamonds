@@ -4,19 +4,13 @@ project:
   status: active
 
 snapshot:
-<<<<<<< Updated upstream
-  updated_utc: '2026-03-05T21:47:11Z'
-  git:
-    branch: rel-03-promote-replace-stable
-=======
-  updated_utc: '2026-03-05T22:08:45Z'
+  updated_utc: '2026-03-05T22:51:43Z'
   git:
     branch: main
->>>>>>> Stashed changes
     head: '9753494'
   window:
-    completed: 15
-    pending: 2
+    completed: 17
+    pending: 0
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
     - docs/diamond-suite.md (handbook + usage examples)
@@ -127,7 +121,7 @@ completed:
 
   - id: exp-01
     category: feature
-    title: Implement freq builtin (outside v1 contract: non-contract implemented)
+    title: "Implement freq builtin (outside v1 contract: non-contract implemented)"
     branch: main
     state: complete
     spec_refs:
@@ -138,7 +132,7 @@ completed:
 
   - id: exp-02
     category: feature
-    title: Implement alone and arrange builtins (outside v1 contract: non-contract implemented)
+    title: "Implement alone and arrange builtins (outside v1 contract: non-contract implemented)"
     branch: main
     state: complete
     spec_refs:
@@ -205,28 +199,32 @@ completed:
     evidence:
       - .github/workflows/ci.yml
 
-pending:
   - id: pkg-01
     category: chore
     title: Add release packaging target for distributing builtins and docs
-    branch: tbd
-    state: pending
+    branch: main
+    state: complete
     spec_refs:
       - Makefile (build outputs in build/*.so)
-    rationale:
-      - No clear artifact packaging flow for release bundles.
-    depends_on:
-      - ci-01
+      - docs/project-spec.md#5-conformance
+    evidence:
+      - Makefile
+      - README.md
+      - tests/spec_release_pkg.bats
 
   - id: rel-04
     category: fix
     title: Decide and enforce v1 scope in build outputs (exclude non-contract builtins or label them clearly)
-    branch: tbd
-    state: pending
+    branch: main
+    state: complete
     spec_refs:
       - docs/project-spec.md#3-builtin-inventory-and-stability
-    rationale:
-      - Build currently auto-discovers and outputs .so for non-contract builtins, which blurs v1 contract scope.
-    depends_on:
-      - rel-01
-      - pkg-01
+    evidence:
+      - src/builtins/builtin_alone.c (removed)
+      - src/builtins/builtin_arrange.c (removed)
+      - src/builtins/builtin_freq.c (removed)
+      - tests/alone.bats (removed)
+      - tests/arrange.bats (removed)
+      - tests/freq.bats (removed)
+
+pending: []

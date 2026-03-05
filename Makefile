@@ -3,6 +3,12 @@ BUILD_DIR   := build
 SRC_DIR     := src
 INCLUDE_DIR := src/include
 TEST_DIR    := tests
+VERSION     ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+DIST_DIR    := $(BUILD_DIR)/release
+DIST_NAME   := $(PROJECT)-$(VERSION)
+DIST_STAGE  := $(DIST_DIR)/$(DIST_NAME)
+DIST_TARBALL := $(DIST_DIR)/$(DIST_NAME).tar.gz
+DIST_SHA256 := $(DIST_TARBALL).sha256
 
 CC   ?= cc
 BASH ?= bash
@@ -43,7 +49,7 @@ CORE_REL_OBJS := $(patsubst $(SRC_DIR)/diamondcore/%.c,$(REL_OBJDIR)/core/%.o,$(
 # All C/C++ headers and sources under src/
 FORMAT_SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-.PHONY: all debug rel clean test list-builtins format format-check
+.PHONY: all debug rel dist dist-clean clean test list-builtins format format-check
 
 all: debug
 
@@ -55,6 +61,17 @@ rel: CFLAGS := $(CFLAGS_COMMON) -O2 -DNDEBUG
 rel: $(BUILD_DIR) $(REL_OBJDIR) \
      $(foreach b,$(BUILTINS),$(BUILD_DIR)/$(b).so)
 
+dist: rel $(DIST_DIR)
+	rm -rf "$(DIST_STAGE)"
+	mkdir -p "$(DIST_STAGE)/builtins"
+	cp $(BUILD_DIR)/*.so "$(DIST_STAGE)/builtins/"
+	cp -r docs "$(DIST_STAGE)/"
+	cp README.md "$(DIST_STAGE)/"
+	tar -C "$(DIST_DIR)" -czf "$(DIST_TARBALL)" "$(DIST_NAME)"
+	sha256sum "$(DIST_TARBALL)" > "$(DIST_SHA256)"
+	@echo "Created $(DIST_TARBALL)"
+	@echo "Created $(DIST_SHA256)"
+
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
@@ -63,6 +80,9 @@ $(DBG_OBJDIR):
 
 $(REL_OBJDIR):
 	mkdir -p $(REL_OBJDIR)/core
+
+$(DIST_DIR):
+	mkdir -p $(DIST_DIR)
 
 # Compile diamondcore (debug)
 $(DBG_OBJDIR)/core/%.o: $(SRC_DIR)/diamondcore/%.c | $(DBG_OBJDIR)
@@ -100,6 +120,9 @@ list-builtins:
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+dist-clean:
+	rm -rf $(DIST_DIR)
 
 -include $(DBG_OBJDIR)/core/*.d
 -include $(REL_OBJDIR)/core/*.d

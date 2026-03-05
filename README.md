@@ -43,6 +43,18 @@ Run the conformance suite:
 make test
 ```
 
+## Release Bundle
+
+Build a release bundle with builtins and docs:
+
+```sh
+make dist
+```
+
+Artifacts are written to `build/release/`:
+- `diamonds-<version>.tar.gz`
+- `diamonds-<version>.tar.gz.sha256`
+
 Suite-wide exit codes:
 - `0`: success and output emitted
 - `1`: success and no output emitted
