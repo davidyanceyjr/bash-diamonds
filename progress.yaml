@@ -1,0 +1,230 @@
+project:
+  name: bash-diamonds
+  milestone: v1
+  status: active
+
+snapshot:
+  updated_utc: '2026-03-05T17:33:59Z'
+  git:
+    branch: main
+    head: '1eacbc7'
+  window:
+    completed: 10
+    pending: 7
+  basis:
+    - docs/project-spec.md (normative contract + builtin inventory)
+    - docs/diamond-suite.md (handbook + usage examples)
+    - src/builtins/*.c + src/diamondcore/* (implementation)
+    - tests/*.bats (conformance expectations per builtin)
+    - Makefile + build/*.so (build wiring and compiled artifacts)
+
+completed:
+  - id: cli-01
+    category: feature
+    title: Implement lines builtin with shared range spec
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_lines.c
+      - docs/lines.md
+      - docs/common-range-spec.md
+      - tests/lines.bats
+
+  - id: text-02
+    category: feature
+    title: Implement fields builtin for delimiter-based field selection
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_fields.c
+      - docs/fields.md
+      - tests/fields.bats
+
+  - id: text-03
+    category: feature
+    title: Implement trim builtin for per-record trimming
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_trim.c
+      - docs/trim.md
+      - tests/trim.bats
+
+  - id: text-04
+    category: feature
+    title: Implement table and match builtins for formatting and constrained filtering
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_table.c
+      - src/builtins/builtin_match.c
+      - docs/table.md
+      - docs/match.md
+      - tests/table.bats
+      - tests/match.bats
+
+  - id: text-05
+    category: feature
+    title: Implement replace builtin (preview) with literal/regex modes and modified-lines-only output
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-2-preview
+    evidence:
+      - src/builtins/builtin_replace.c
+      - docs/replace.md
+      - tests/replace.bats
+
+  - id: text-06
+    category: feature
+    title: Implement take builtin for fixed-window line extraction
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_take.c
+      - docs/take.md
+      - tests/take.bats
+
+  - id: text-07
+    category: feature
+    title: Implement count builtin for line counting
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_count.c
+      - docs/count.md
+      - tests/count.bats
+
+  - id: text-08
+    category: feature
+    title: Implement filter builtin for expression-based filtering
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+    evidence:
+      - src/builtins/builtin_filter.c
+      - docs/filter.md
+      - tests/filter.bats
+
+  - id: exp-01
+    category: feature
+    title: Implement freq builtin (outside v1 contract: Planned)
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-3-planned
+    evidence:
+      - src/builtins/builtin_freq.c
+      - docs/freq.md
+      - tests/freq.bats
+
+  - id: exp-02
+    category: feature
+    title: Implement alone and arrange builtins (outside v1 contract: Planned)
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-3-planned
+    evidence:
+      - src/builtins/builtin_alone.c
+      - src/builtins/builtin_arrange.c
+      - docs/alone.md
+      - docs/arrange.md
+      - tests/alone.bats
+      - tests/arrange.bats
+
+pending:
+  - id: rel-01
+    category: docs
+    title: Reconcile builtin inventory in project-spec with implemented builtins
+    branch: tbd
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#3-builtin-inventory-and-stability
+    rationale:
+      - Current contract lists freq/alone/arrange as Planned, while code/docs/tests/build artifacts exist.
+
+  - id: rel-02
+    category: docs
+    title: Add README.md with build/test prerequisites and quickstart
+    branch: tbd
+    state: pending
+    spec_refs:
+      - docs/diamond-suite.md (handbook exists, but no repo-level README)
+    rationale:
+      - Repository currently lacks README.md; onboarding requires discovering docs/ manually.
+    depends_on:
+      - rel-01
+
+  - id: ci-01
+    category: chore
+    title: Add CI workflow to build and run Bats tests
+    branch: tbd
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#5-conformance
+      - Makefile#test
+    rationale:
+      - No CI config found; conformance is currently local-only.
+    depends_on:
+      - rel-02
+
+  - id: cli-02
+    category: docs
+    title: Document positional-primary CLI defaults consistently across per-builtin docs
+    branch: tbd
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#2-6-positional-primary-cli
+    rationale:
+      - Contract defines positional-primary behavior; per-builtin docs should be audited for consistency.
+
+  - id: rel-03
+    category: feature
+    title: Promote replace from Preview to Stable once contract and tests are finalized
+    branch: tbd
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#3-2-preview
+    rationale:
+      - replace is implemented with tests/docs, but contract still marks it Preview.
+    depends_on:
+      - rel-01
+
+  - id: pkg-01
+    category: chore
+    title: Add release packaging target for distributing builtins and docs
+    branch: tbd
+    state: pending
+    spec_refs:
+      - Makefile (build outputs in build/*.so)
+    rationale:
+      - No clear artifact packaging flow for release bundles.
+    depends_on:
+      - ci-01
+
+  - id: rel-04
+    category: fix
+    title: Decide and enforce v1 scope in build outputs (exclude non-contract builtins or label them clearly)
+    branch: tbd
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#3-builtin-inventory-and-stability
+    rationale:
+      - Build currently auto-discovers and outputs .so for Planned builtins, which blurs v1 contract scope.
+    depends_on:
+      - rel-01
+      - pkg-01
