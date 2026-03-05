@@ -4,13 +4,13 @@ project:
   status: active
 
 snapshot:
-  updated_utc: '2026-03-05T20:23:23Z'
+  updated_utc: '2026-03-05T21:36:06Z'
   git:
     branch: main
-    head: 'fdf134f'
+    head: 'aea5d0a'
   window:
-    completed: 13
-    pending: 4
+    completed: 14
+    pending: 3
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
     - docs/diamond-suite.md (handbook + usage examples)
@@ -128,7 +128,6 @@ completed:
       - docs/project-spec.md#3-4-implemented-but-non-contract
     evidence:
       - src/builtins/builtin_freq.c
-      - docs/freq.md
       - tests/freq.bats
 
   - id: exp-02
@@ -141,8 +140,6 @@ completed:
     evidence:
       - src/builtins/builtin_alone.c
       - src/builtins/builtin_arrange.c
-      - docs/alone.md
-      - docs/arrange.md
       - tests/alone.bats
       - tests/arrange.bats
 
@@ -167,6 +164,16 @@ completed:
     evidence:
       - README.md
 
+  - id: cli-02
+    category: docs
+    title: Document positional-primary CLI defaults consistently across per-builtin docs
+    branch: main
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#2-6-positional-primary-cli
+    evidence:
+      - tests/spec_cli_docs.bats
+
   - id: ci-01
     category: chore
     title: Add CI workflow to build and run Bats tests
@@ -179,16 +186,6 @@ completed:
       - .github/workflows/ci.yml
 
 pending:
-  - id: cli-02
-    category: docs
-    title: Document positional-primary CLI defaults consistently across per-builtin docs
-    branch: tbd
-    state: pending
-    spec_refs:
-      - docs/project-spec.md#2-6-positional-primary-cli
-    rationale:
-      - Contract defines positional-primary behavior; per-builtin docs should be audited for consistency.
-
   - id: rel-03
     category: feature
     title: Promote replace from Preview to Stable once contract and tests are finalized
