@@ -107,12 +107,13 @@ No other exit codes are permitted.
 - table
 - count
 - filter
+- replace
 
 Stable builtins guarantee CLI/output/exit compatibility unless versioned.
 
 ### 3.2 Preview
 
-- replace
+None.
 
 Preview builtins are functional but may evolve before stabilization.
 

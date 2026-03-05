@@ -36,8 +36,6 @@ Stable:
 - `table [--] [FILE...]`
 - `count [--] [FILE...]`
 - `filter EXPR [--] [FILE...]`
-
-Preview:
 - `replace [--literal] PATTERN REPLACEMENT [--] [FILE...]`
 
 ## Exit Codes (All Tools)

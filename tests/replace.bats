@@ -33,6 +33,22 @@
   [ "$status" -eq 2 ]
 }
 
+@test "replace: duplicate --literal is usage error (exit 2)" {
+  run bash -c '
+    enable -f "$BASH_BUILTINS_DIR/replace.debug.so" replace
+    printf "a\n" | replace --literal --literal a x
+  '
+  [ "$status" -eq 2 ]
+}
+
+@test "replace: invalid regex is runtime error (exit 2)" {
+  run bash -c '
+    enable -f "$BASH_BUILTINS_DIR/replace.debug.so" replace
+    printf "a\n" | replace "[" x
+  '
+  [ "$status" -eq 2 ]
+}
+
 @test "replace: literal mode basic replacement" {
   run bash -c '
     enable -f "$BASH_BUILTINS_DIR/replace.debug.so" replace
