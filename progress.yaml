@@ -4,13 +4,13 @@ project:
   status: active
 
 snapshot:
-  updated_utc: '2026-03-05T21:36:06Z'
+  updated_utc: '2026-03-05T21:47:11Z'
   git:
-    branch: main
-    head: 'aea5d0a'
+    branch: rel-03-promote-replace-stable
+    head: '9753494'
   window:
-    completed: 14
-    pending: 3
+    completed: 15
+    pending: 2
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
     - docs/diamond-suite.md (handbook + usage examples)
@@ -164,6 +164,20 @@ completed:
     evidence:
       - README.md
 
+  - id: rel-03
+    category: feature
+    title: Promote replace from Preview to Stable once contract and tests are finalized
+    branch: rel-03-promote-replace-stable
+    state: complete
+    spec_refs:
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+      - docs/project-spec.md#3-2-preview
+    evidence:
+      - docs/project-spec.md
+      - docs/diamond-suite.md
+      - tests/spec_inventory.bats
+      - tests/replace.bats
+
   - id: cli-02
     category: docs
     title: Document positional-primary CLI defaults consistently across per-builtin docs
@@ -186,18 +200,6 @@ completed:
       - .github/workflows/ci.yml
 
 pending:
-  - id: rel-03
-    category: feature
-    title: Promote replace from Preview to Stable once contract and tests are finalized
-    branch: tbd
-    state: pending
-    spec_refs:
-      - docs/project-spec.md#3-2-preview
-    rationale:
-      - replace is implemented with tests/docs, but contract still marks it Preview.
-    depends_on:
-      - rel-01
-
   - id: pkg-01
     category: chore
     title: Add release packaging target for distributing builtins and docs
