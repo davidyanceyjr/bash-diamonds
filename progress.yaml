@@ -4,13 +4,13 @@ project:
   status: active
 
 snapshot:
-  updated_utc: '2026-03-05T18:09:47Z'
+  updated_utc: '2026-03-05T20:23:23Z'
   git:
     branch: main
-    head: '5e7f816'
+    head: 'fdf134f'
   window:
-    completed: 12
-    pending: 5
+    completed: 13
+    pending: 4
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
     - docs/diamond-suite.md (handbook + usage examples)
@@ -167,20 +167,18 @@ completed:
     evidence:
       - README.md
 
-pending:
   - id: ci-01
     category: chore
     title: Add CI workflow to build and run Bats tests
-    branch: tbd
-    state: pending
+    branch: main
+    state: complete
     spec_refs:
       - docs/project-spec.md#5-conformance
       - Makefile#test
-    rationale:
-      - No CI config found; conformance is currently local-only.
-    depends_on:
-      - rel-02
+    evidence:
+      - .github/workflows/ci.yml
 
+pending:
   - id: cli-02
     category: docs
     title: Document positional-primary CLI defaults consistently across per-builtin docs
