@@ -54,6 +54,7 @@ make dist
 Artifacts are written to `build/release/`:
 - `diamonds-<version>.tar.gz`
 - `diamonds-<version>.tar.gz.sha256`
+Bundle contents include release `.so` builtins, `docs/`, and this `README.md`.
 
 Suite-wide exit codes:
 - `0`: success and output emitted
