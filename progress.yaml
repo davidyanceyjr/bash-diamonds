@@ -10,7 +10,7 @@ snapshot:
     head: '9753494'
   window:
     completed: 15
-    pending: 0
+    pending: 5
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
     - docs/diamond-suite.md (handbook + usage examples)
@@ -200,4 +200,70 @@ completed:
       - tests/spec_inventory.bats
       - Makefile
 
-pending: []
+pending:
+  - id: doc-01
+    category: docs
+    title: Restore suite doc integrity by adding missing common-exit-codes reference page
+    branch: main
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#2-7-exit-codes
+      - docs/project-spec.md#2-9-diagnostics
+    targets:
+      - Add docs/common-exit-codes.md as a single canonical exit-code reference.
+      - Update per-builtin docs to reference existing files only.
+      - Add a docs link-integrity test that fails on missing internal doc targets.
+
+  - id: ux-01
+    category: docs
+    title: Resolve pipeline-goal mismatch for table by making capability boundaries explicit at suite level
+    branch: main
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#2-1-streaming-model
+      - docs/project-spec.md#3-1-stable-v1-0-contract
+      - docs/diamond-suite.md (non-normative handbook)
+    targets:
+      - Add a concise capability matrix in handbook/README distinguishing streaming vs non-streaming builtins.
+      - Call out table non-seekable rejection in quickstart/pipeline examples.
+      - Add doc conformance test ensuring table exception language remains present.
+
+  - id: qa-01
+    category: test
+    title: Add host-process safety regression tests for loadable builtin invariants
+    branch: main
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#2-8-stdout-failure-handling
+      - docs/project-spec.md#2-9-diagnostics
+      - AGENTS.md (builtin safety rule)
+    targets:
+      - Add tests to verify SIGPIPE handler is restored after builtin execution.
+      - Add tests to detect file-descriptor leaks across repeated builtin invocations.
+      - Add tests to verify diagnostics stay on stderr and stdout remains clean on failure.
+
+  - id: rel-05
+    category: chore
+    title: Reduce portability friction with reproducible build/runtime guidance and optional dev container path
+    branch: main
+    state: pending
+    spec_refs:
+      - README.md (prerequisites)
+      - docs/diamond-suite.md (user workflow)
+    targets:
+      - Add a compatibility matrix (Bash/loadable support, Linux distro assumptions).
+      - Provide a containerized/dev-shell workflow for building and running tests.
+      - Add CI job that validates the documented reproducible setup.
+
+  - id: perf-01
+    category: chore
+    title: Back performance claims with reproducible benchmarks
+    branch: main
+    state: pending
+    spec_refs:
+      - docs/project-spec.md#5-conformance
+      - docs/diamond-suite.md (design goals)
+    targets:
+      - Add benchmark harness comparing selected builtins vs common external tools.
+      - Report dataset shapes, command lines, and environment metadata for reproducibility.
+      - Publish baseline results in docs and gate benchmark regressions in CI as informational.
