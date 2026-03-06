@@ -4,12 +4,12 @@ project:
   status: active
 
 snapshot:
-  updated_utc: '2026-03-05T22:51:43Z'
+  updated_utc: '2026-03-06T13:51:35Z'
   git:
     branch: main
     head: '9753494'
   window:
-    completed: 17
+    completed: 15
     pending: 0
   basis:
     - docs/project-spec.md (normative contract + builtin inventory)
@@ -73,11 +73,11 @@ completed:
 
   - id: text-05
     category: feature
-    title: Implement replace builtin (preview) with literal/regex modes and modified-lines-only output
+    title: Implement replace builtin with literal/regex modes and modified-lines-only output
     branch: main
     state: complete
     spec_refs:
-      - docs/project-spec.md#3-2-preview
+      - docs/project-spec.md#3-1-stable-v1-0-contract
     evidence:
       - src/builtins/builtin_replace.c
       - docs/replace.md
@@ -118,30 +118,6 @@ completed:
       - src/builtins/builtin_filter.c
       - docs/filter.md
       - tests/filter.bats
-
-  - id: exp-01
-    category: feature
-    title: "Implement freq builtin (outside v1 contract: non-contract implemented)"
-    branch: main
-    state: complete
-    spec_refs:
-      - docs/project-spec.md#3-4-implemented-but-non-contract
-    evidence:
-      - src/builtins/builtin_freq.c
-      - tests/freq.bats
-
-  - id: exp-02
-    category: feature
-    title: "Implement alone and arrange builtins (outside v1 contract: non-contract implemented)"
-    branch: main
-    state: complete
-    spec_refs:
-      - docs/project-spec.md#3-4-implemented-but-non-contract
-    evidence:
-      - src/builtins/builtin_alone.c
-      - src/builtins/builtin_arrange.c
-      - tests/alone.bats
-      - tests/arrange.bats
 
   - id: rel-01
     category: docs
@@ -220,11 +196,8 @@ completed:
     spec_refs:
       - docs/project-spec.md#3-builtin-inventory-and-stability
     evidence:
-      - src/builtins/builtin_alone.c (removed)
-      - src/builtins/builtin_arrange.c (removed)
-      - src/builtins/builtin_freq.c (removed)
-      - tests/alone.bats (removed)
-      - tests/arrange.bats (removed)
-      - tests/freq.bats (removed)
+      - docs/project-spec.md
+      - tests/spec_inventory.bats
+      - Makefile
 
 pending: []
