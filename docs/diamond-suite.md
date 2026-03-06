@@ -25,6 +25,25 @@ Typical development build:
 make debug
 ```
 
+## User-Level Install
+
+From a repository clone (after `make rel`):
+
+```bash
+./scripts/install-user.sh --source ./build
+```
+
+From a release tarball root:
+
+```bash
+./install-user.sh
+```
+
+The script installs `.so` files into `~/.local/lib/bash-diamonds/` and writes a
+loader snippet to `~/.bashrc` so builtins are available in new shells.
+
+Use `./install-user.sh --help` for options (`--source`, `--prefix`, `--no-rc`).
+
 ## Core Tools (Current)
 
 Stable:

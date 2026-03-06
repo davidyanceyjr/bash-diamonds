@@ -65,6 +65,7 @@ dist: rel $(DIST_DIR)
 	rm -rf "$(DIST_STAGE)"
 	mkdir -p "$(DIST_STAGE)/builtins"
 	cp $(BUILD_DIR)/*.so "$(DIST_STAGE)/builtins/"
+	cp scripts/install-user.sh "$(DIST_STAGE)/"
 	cp -r docs "$(DIST_STAGE)/"
 	cp README.md "$(DIST_STAGE)/"
 	tar -C "$(DIST_DIR)" -czf "$(DIST_TARBALL)" "$(DIST_NAME)"

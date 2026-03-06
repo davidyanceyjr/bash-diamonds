@@ -56,6 +56,31 @@ Artifacts are written to `build/release/`:
 - `diamonds-<version>.tar.gz.sha256`
 Bundle contents include release `.so` builtins, `docs/`, and this `README.md`.
 
+## User Install (No Root)
+
+From a repository clone (after `make rel`):
+
+```sh
+./scripts/install-user.sh --source ./build
+```
+
+From an extracted release tarball root:
+
+```sh
+./install-user.sh
+```
+
+This installs builtins to `~/.local/lib/bash-diamonds/` and adds a small loader
+snippet to `~/.bashrc` (unless `--no-rc` is passed).
+
+Useful options:
+
+```sh
+./install-user.sh --help
+./install-user.sh --source ./build --no-rc
+./install-user.sh --prefix "$HOME/.local/lib/bash-diamonds"
+```
+
 Suite-wide exit codes:
 - `0`: success and output emitted
 - `1`: success and no output emitted
