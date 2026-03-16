@@ -26,14 +26,14 @@ Primary form is positional: `filter EXPR [--] [FILE...]`.
 
 ## Exit Codes
 
-  Code   Meaning
-  ------ ---------------------------------------------------------------
-  0      At least one matching line emitted
-  1      No matching lines emitted (inputs readable)
-  2      Usage error, expression parse error, file I/O error,
-         stdout write error, or execution limit exceeded
+See `docs/common-exit-codes.md`.
 
-SIGPIPE must be ignored internally so stdout write failures return exit 2.
+Additional exit-2 cases:
+
+- expression parse error
+- execution limit exceeded
+
+SIGPIPE must be ignored internally so stdout write failures return `2`.
 
 -----------------------------------------------------------------------
 

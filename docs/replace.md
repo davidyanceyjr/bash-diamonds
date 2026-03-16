@@ -102,11 +102,11 @@ No newline is synthesized.
 
 ## Exit Status
 
-| Code | Meaning                                                          |
-| ---- | ---------------------------------------------------------------- |
-| 0    | At least one record emitted (≥1 substitution occurred somewhere) |
-| 1    | No substitutions occurred (no output)                            |
-| 2    | Error (usage, invalid regex, I/O error, stdout write failure)    |
+See `docs/common-exit-codes.md`.
+
+Additional exit-2 cases:
+
+- invalid regex
 
 ---
 

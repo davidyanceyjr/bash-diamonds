@@ -44,6 +44,8 @@ Stable:
 - `1`: success with no output emitted
 - `2`: usage/runtime/write error
 
+See `docs/common-exit-codes.md`.
+
 ## Practical Examples
 
 Extract, match, count:
