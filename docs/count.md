@@ -49,10 +49,9 @@ Behavior:
 
 ## Exit Codes
 
-* `0` success (count printed; including `0`)
-* `2` usage/runtime error
+See `docs/common-exit-codes.md`.
 
-`count` never exits with code `1`.
+`count` never exits with code `1`; on success it always emits a count, including `0`.
 
 ## SIGPIPE
 
