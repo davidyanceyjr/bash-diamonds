@@ -3,34 +3,38 @@
 #include "diamondcore.h"
 
 #include <errno.h>
+#include <signal.h> // ANCHOR:SIGPIPE-INCLUDE
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>  // ANCHOR:SIGPIPE-INCLUDE
 
 // Bash loadable builtin headers (vendored minimal subset for loadables)
 #include "builtins.h"
 #include "shell.h"
 
-__attribute__((unused))
-static const char *take_shortdoc = "take N [S] [--] [FILE...]";
+__attribute__((unused)) static const char *take_shortdoc =
+    "take N [S] [--] [FILE...]";
 
 static char *take_doc[] = {
-  "Emit a forward-only slice of input lines (take N [S]).",
-  (char *)0,
+    "Emit a forward-only slice of input lines (take N [S]).",
+    (char *)0,
 };
 
 static int take_usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "take: %s\n", msg);
-  else dc_print_usage_take(stderr);
+  if (msg && *msg)
+    fprintf(stderr, "take: %s\n", msg);
+  else
+    dc_print_usage_take(stderr);
   return 2;
 }
 
 static int take_io_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "take: %s\n", msg);
-  else fprintf(stderr, "take: I/O error\n");
+  if (msg && *msg)
+    fprintf(stderr, "take: %s\n", msg);
+  else
+    fprintf(stderr, "take: I/O error\n");
   return 2;
 }
 
@@ -39,7 +43,8 @@ static int take_help(void) {
   return 0;
 }
 
-static int take_main(uint64_t n, uint64_t s, char *const *files, size_t file_count) {
+static int take_main(uint64_t n, uint64_t s, char *const *files,
+                     size_t file_count) {
   dc_error_t err;
 
   dc_line_reader_t *lr = dc_lr_open(files, file_count, &err);
@@ -63,8 +68,10 @@ static int take_main(uint64_t n, uint64_t s, char *const *files, size_t file_cou
 
     line_no++;
 
-    if (line_no <= s) continue;
-    if (emitted >= n) break;
+    if (line_no <= s)
+      continue;
+    if (emitted >= n)
+      break;
 
     if (n > 0) {
       if (v.len > 0) {
@@ -75,7 +82,8 @@ static int take_main(uint64_t n, uint64_t s, char *const *files, size_t file_cou
         }
       }
       emitted++;
-      if (emitted >= n) break;
+      if (emitted >= n)
+        break;
     }
   }
 
@@ -96,10 +104,10 @@ static int take_main(uint64_t n, uint64_t s, char *const *files, size_t file_cou
 // - N is required (first positional).
 // - S is optional (second positional).
 // - Remaining tokens are FILE...
-__attribute__((visibility("default")))
-int take_builtin(WORD_LIST *list) {
+__attribute__((visibility("default"))) int take_builtin(WORD_LIST *list) {
   // === ANCHOR:SIGPIPE-BEGIN ===
-  // Ignore SIGPIPE so closed-pipe writes surface as stdio errors (EPIPE) and we return 2.
+  // Ignore SIGPIPE so closed-pipe writes surface as stdio errors (EPIPE) and we
+  // return 2.
   void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
   // === ANCHOR:SIGPIPE-END ===
 
@@ -122,7 +130,8 @@ int take_builtin(WORD_LIST *list) {
   // === ANCHOR:ARGV-PARSE-BEGIN ===
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
-    if (!tok) tok = "";
+    if (!tok)
+      tok = "";
 
     if (!end_opts && !have_n && strcmp(tok, "--help") == 0) {
       rc = take_help();
@@ -188,12 +197,11 @@ out:
   // === ANCHOR:CLEANUP-END ===
 }
 
-__attribute__((visibility("default")))
-struct builtin take_struct = {
-  .name = "take",
-  .function = take_builtin,
-  .flags = BUILTIN_ENABLED,
-  .long_doc = take_doc,
-  .short_doc = (char *)"take N [S] [--] [FILE...]",
-  .handle = 0,
+__attribute__((visibility("default"))) struct builtin take_struct = {
+    .name = "take",
+    .function = take_builtin,
+    .flags = BUILTIN_ENABLED,
+    .long_doc = take_doc,
+    .short_doc = (char *)"take N [S] [--] [FILE...]",
+    .handle = 0,
 };

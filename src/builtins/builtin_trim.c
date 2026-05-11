@@ -3,34 +3,38 @@
 #include "diamondcore.h"
 
 #include <errno.h>
+#include <signal.h> // ANCHOR:SIGPIPE-INCLUDE
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>  // ANCHOR:SIGPIPE-INCLUDE
 
 // Bash loadable builtin headers (vendored minimal subset for loadables)
 #include "builtins.h"
 #include "shell.h"
 
-__attribute__((unused))
-static const char *trim_shortdoc = "trim [--] [FILE...]";
+__attribute__((unused)) static const char *trim_shortdoc =
+    "trim [--] [FILE...]";
 
 static char *trim_doc[] = {
-  "Remove leading and trailing ASCII whitespace from each input line.",
-  (char *)0,
+    "Remove leading and trailing ASCII whitespace from each input line.",
+    (char *)0,
 };
 
 static int trim_usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "trim: %s\n", msg);
-  else dc_print_usage_trim(stderr);
+  if (msg && *msg)
+    fprintf(stderr, "trim: %s\n", msg);
+  else
+    dc_print_usage_trim(stderr);
   return 2;
 }
 
 static int trim_io_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "trim: %s\n", msg);
-  else fprintf(stderr, "trim: I/O error\n");
+  if (msg && *msg)
+    fprintf(stderr, "trim: %s\n", msg);
+  else
+    fprintf(stderr, "trim: I/O error\n");
   return 2;
 }
 
@@ -67,16 +71,20 @@ static int trim_main(char *const *files, size_t file_count) {
 
     // Exclude trailing '\n' from trim region; newline is structural.
     size_t content_len = v.len;
-    if (v.ends_with_nl && content_len > 0) content_len -= 1;
+    if (v.ends_with_nl && content_len > 0)
+      content_len -= 1;
 
     size_t start = 0;
-    while (start < content_len && is_trim_ws(v.ptr[start])) start++;
+    while (start < content_len && is_trim_ws(v.ptr[start]))
+      start++;
 
     size_t end = content_len;
-    while (end > start && is_trim_ws(v.ptr[end - 1])) end--;
+    while (end > start && is_trim_ws(v.ptr[end - 1]))
+      end--;
 
     size_t out_len = end - start;
-    if (out_len == 0) continue; // emit nothing for this line
+    if (out_len == 0)
+      continue; // emit nothing for this line
 
     size_t n = fwrite(v.ptr + start, 1, out_len, stdout);
     if (n != out_len) {
@@ -108,10 +116,10 @@ static int trim_main(char *const *files, size_t file_count) {
 // Parsing rules:
 // - Only --help is recognized.
 // - Any other -x token is an error unless after --, or token is exactly '-'.
-__attribute__((visibility("default")))
-int trim_builtin(WORD_LIST *list) {
+__attribute__((visibility("default"))) int trim_builtin(WORD_LIST *list) {
   // === ANCHOR:SIGPIPE-BEGIN ===
-  // Ignore SIGPIPE so closed-pipe writes surface as stdio errors (EPIPE) and we return 2.
+  // Ignore SIGPIPE so closed-pipe writes surface as stdio errors (EPIPE) and we
+  // return 2.
   void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
   // === ANCHOR:SIGPIPE-END ===
 
@@ -129,7 +137,8 @@ int trim_builtin(WORD_LIST *list) {
 
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
-    if (!tok) tok = "";
+    if (!tok)
+      tok = "";
 
     if (!end_opts && strcmp(tok, "--help") == 0) {
       rc = trim_help();
@@ -166,12 +175,11 @@ out:
   return rc;
 }
 
-__attribute__((visibility("default")))
-struct builtin trim_struct = {
-  .name = "trim",
-  .function = trim_builtin,
-  .flags = BUILTIN_ENABLED,
-  .long_doc = trim_doc,
-  .short_doc = (char *)"trim [--] [FILE...]",
-  .handle = 0,
+__attribute__((visibility("default"))) struct builtin trim_struct = {
+    .name = "trim",
+    .function = trim_builtin,
+    .flags = BUILTIN_ENABLED,
+    .long_doc = trim_doc,
+    .short_doc = (char *)"trim [--] [FILE...]",
+    .handle = 0,
 };

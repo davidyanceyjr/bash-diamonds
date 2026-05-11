@@ -3,8 +3,8 @@
  *
  * Minimal Bash loadable builtin interface.
  *
- * The runtime `enable -f` loader expects a global `struct builtin <name>_struct`
- * symbol with the layout below.
+ * The runtime `enable -f` loader expects a global `struct builtin
+ * <name>_struct` symbol with the layout below.
  */
 
 #ifndef BD_VENDORED_BUILTINS_H

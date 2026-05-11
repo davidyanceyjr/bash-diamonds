@@ -5,12 +5,15 @@
 #include <stdio.h>
 
 void dc_print_help_lines(FILE *out) {
-  if (!out) out = stdout;
+  if (!out)
+    out = stdout;
 
   fputs("usage: lines SPEC [--] [FILE...]\n", out);
   fputs("       lines --help\n", out);
   fputs("\n", out);
-  fputs("Select and emit specific 1-based input lines by numeric index or range.\n", out);
+  fputs("Select and emit specific 1-based input lines by numeric index or "
+        "range.\n",
+        out);
   fputs("\n", out);
 
   fputs("Options:\n", out);
@@ -23,14 +26,17 @@ void dc_print_help_lines(FILE *out) {
   fputs("  FILE...  optional inputs\n", out);
   fputs("\n", out);
 
-  dc_print_help_common_range_spec(out, "SPEC", "Applies to the concatenation of all inputs.");
+  dc_print_help_common_range_spec(
+      out, "SPEC", "Applies to the concatenation of all inputs.");
   fputs("\n", out);
 
   dc_print_help_common_files(out);
   fputs("\n", out);
 
   fputs("Output:\n", out);
-  fputs("  - Matching lines are written verbatim (including their newline if present).\n", out);
+  fputs("  - Matching lines are written verbatim (including their newline if "
+        "present).\n",
+        out);
   fputs("  - No newline is synthesized.\n", out);
   fputs("\n", out);
 

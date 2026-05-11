@@ -1,5 +1,6 @@
 /* src/include/diamondcore.h */
-/* DROP-IN: restore original header structure and add replace declarations only */
+/* DROP-IN: restore original header structure and add replace declarations only
+ */
 
 #ifndef DIAMONDCORE_H
 #define DIAMONDCORE_H
@@ -78,7 +79,7 @@ void dc_print_help_trim(FILE *out);
 void dc_print_help_lines(FILE *out);
 void dc_print_help_fields(FILE *out);
 void dc_print_help_match(FILE *out);
-void dc_print_help_replace(FILE *out);  /* NEW */
+void dc_print_help_replace(FILE *out); /* NEW */
 void dc_print_help_take(FILE *out);
 void dc_print_help_count(FILE *out);
 void dc_print_help_table(FILE *out);
@@ -93,7 +94,8 @@ void dc_print_help_common_sigpipe(FILE *out);
  * - what: header label (e.g., "SPEC")
  * - scope: one-line scope description (may be "")
  */
-void dc_print_help_common_range_spec(FILE *out, const char *what, const char *scope);
+void dc_print_help_common_range_spec(FILE *out, const char *what,
+                                     const char *scope);
 
 /* =============================================================================
  * Strict unsigned base-10 integer parsing.
@@ -103,7 +105,8 @@ void dc_print_help_common_range_spec(FILE *out, const char *what, const char *sc
  * - no leading zeros unless exactly "0"
  * - must fit in uint64_t
  *
- * On failure sets err->code=DC_ERR_USAGE and a short message (e.g. "invalid N").
+ * On failure sets err->code=DC_ERR_USAGE and a short message (e.g. "invalid
+ * N").
  * =============================================================================
  */
 bool dc_parse_u64_dec_strict(const char *s, uint64_t *out, const char *label,
@@ -122,7 +125,8 @@ void dc_sel_free(dc_sel_t *sel);
  * Line reader (streaming, bytewise)
  * =============================================================================
  */
-dc_line_reader_t *dc_lr_open(char *const *files, size_t file_count, dc_error_t *err);
+dc_line_reader_t *dc_lr_open(char *const *files, size_t file_count,
+                             dc_error_t *err);
 bool dc_lr_next(dc_line_reader_t *lr, dc_line_view_t *out, dc_error_t *err);
 void dc_lr_close(dc_line_reader_t *lr);
 
@@ -133,19 +137,20 @@ void dc_lr_close(dc_line_reader_t *lr);
 
 /* Split a line into non-empty fields separated by ASCII whitespace.
  * - Returns number of fields.
- * - On success, *out_fields points to heap array of views into line buffer (no copies).
- *   Caller free().
+ * - On success, *out_fields points to heap array of views into line buffer (no
+ * copies). Caller free().
  * - If no fields, returns 0 and sets *out_fields = NULL.
  * - On allocation failure, returns (size_t)-1 and sets *out_fields = NULL.
  * - Trailing '\n' is treated as whitespace.
  */
-size_t dc_split_ws(const uint8_t *line, size_t len, dc_field_view_t **out_fields);
+size_t dc_split_ws(const uint8_t *line, size_t len,
+                   dc_field_view_t **out_fields);
 
 /* Split a line into fields separated by a single byte delimiter.
  * - Preserves empty fields (consecutive/leading/trailing delimiters).
  * - Returns number of fields (>=1 for any line, including empty).
- * - On success, *out_fields points to heap array of views into line buffer (no copies).
- *   Caller free().
+ * - On success, *out_fields points to heap array of views into line buffer (no
+ * copies). Caller free().
  * - On allocation failure, returns (size_t)-1 and sets *out_fields = NULL.
  */
 size_t dc_split_delim(const uint8_t *line, size_t len, uint8_t delim,

@@ -15,8 +15,8 @@ typedef struct {
 
 struct dc_sel {
   dc_range_t *ranges;
-  size_t      nranges;
-  size_t      cap;
+  size_t nranges;
+  size_t cap;
 
   /* Streaming cursor: monotone line_no => monotone range index */
   size_t cursor;
@@ -25,11 +25,13 @@ struct dc_sel {
 static inline bool is_ws(char c) { return c == ' ' || c == '\t'; }
 
 static void skip_ws(const char **p) {
-  while (p && *p && **p && is_ws(**p)) (*p)++;
+  while (p && *p && **p && is_ws(**p))
+    (*p)++;
 }
 
 static bool add_range(dc_sel_t *sel, uint64_t a, uint64_t b, dc_error_t *err) {
-  if (!sel) return false;
+  if (!sel)
+    return false;
   if (sel->nranges == sel->cap) {
     size_t newcap = sel->cap ? sel->cap * 2 : 8;
     void *np = realloc(sel->ranges, newcap * sizeof(dc_range_t));
@@ -40,7 +42,7 @@ static bool add_range(dc_sel_t *sel, uint64_t a, uint64_t b, dc_error_t *err) {
     sel->ranges = (dc_range_t *)np;
     sel->cap = newcap;
   }
-  sel->ranges[sel->nranges++] = (dc_range_t){ .start = a, .end = b };
+  sel->ranges[sel->nranges++] = (dc_range_t){.start = a, .end = b};
   return true;
 }
 
@@ -81,14 +83,16 @@ static bool parse_uint_strict(const char **p, uint64_t *out, dc_error_t *err) {
     v = v * 10 + d;
   }
 
-  /* No whitespace inside UINT; caller handles allowed whitespace at boundaries. */
+  /* No whitespace inside UINT; caller handles allowed whitespace at boundaries.
+   */
   *out = v;
   *p = s;
   return true;
 }
 
 static bool match_dots(const char **p) {
-  if (!p || !*p) return false;
+  if (!p || !*p)
+    return false;
 
   const char *s = *p;
   if (s && s[0] == '.' && s[1] == '.') {
@@ -118,7 +122,8 @@ static bool parse_item(const char **p, dc_sel_t *sel, dc_error_t *err) {
   uint64_t start = 0, end = 0;
   bool have_start = false, have_end = false;
 
-  /* Two cases: (1) starts with ".." => open-start range; (2) starts with UINT */
+  /* Two cases: (1) starts with ".." => open-start range; (2) starts with UINT
+   */
   if (match_dots(p)) {
     /* "..END" form; START is ε */
     skip_ws(p);
@@ -131,7 +136,8 @@ static bool parse_item(const char **p, dc_sel_t *sel, dc_error_t *err) {
       dc_err_set(err, DC_ERR_USAGE, "lines: invalid SPEC");
       return false;
     }
-    if (!parse_uint_strict(p, &end, err)) return false;
+    if (!parse_uint_strict(p, &end, err))
+      return false;
     have_end = true;
 
     /* Range is 1..end */
@@ -147,7 +153,8 @@ static bool parse_item(const char **p, dc_sel_t *sel, dc_error_t *err) {
     dc_err_set(err, DC_ERR_USAGE, "lines: invalid SPEC");
     return false;
   }
-  if (!parse_uint_strict(p, &start, err)) return false;
+  if (!parse_uint_strict(p, &start, err))
+    return false;
   have_start = true;
 
   /* If it's an INDEX, we're done unless a RANGE follows */
@@ -165,7 +172,8 @@ static bool parse_item(const char **p, dc_sel_t *sel, dc_error_t *err) {
   skip_ws(p);
   if (p && *p && **p != '\0') {
     if ((**p >= '0' && **p <= '9')) {
-      if (!parse_uint_strict(p, &end, err)) return false;
+      if (!parse_uint_strict(p, &end, err))
+        return false;
       have_end = true;
     }
   }
@@ -199,16 +207,21 @@ static bool parse_item(const char **p, dc_sel_t *sel, dc_error_t *err) {
 static int cmp_range(const void *A, const void *B) {
   const dc_range_t *a = (const dc_range_t *)A;
   const dc_range_t *b = (const dc_range_t *)B;
-  if (a->start < b->start) return -1;
-  if (a->start > b->start) return 1;
-  if (a->end < b->end) return -1;
-  if (a->end > b->end) return 1;
+  if (a->start < b->start)
+    return -1;
+  if (a->start > b->start)
+    return 1;
+  if (a->end < b->end)
+    return -1;
+  if (a->end > b->end)
+    return 1;
   return 0;
 }
 
 /* Merge ranges in-place; assumes sorted by (start,end). */
 static void normalize_ranges(dc_sel_t *sel) {
-  if (!sel || sel->nranges == 0) return;
+  if (!sel || sel->nranges == 0)
+    return;
 
   qsort(sel->ranges, sel->nranges, sizeof(dc_range_t), cmp_range);
 
@@ -250,7 +263,8 @@ static void normalize_ranges(dc_sel_t *sel) {
 }
 
 dc_sel_t *dc_sel_parse_and_normalize(const char *spec, dc_error_t *err) {
-  if (err) memset(err,0, sizeof(*err));
+  if (err)
+    memset(err, 0, sizeof(*err));
 
   if (!spec || *spec == '\0') {
     dc_err_set(err, DC_ERR_USAGE, "lines: invalid SPEC");
@@ -286,7 +300,8 @@ dc_sel_t *dc_sel_parse_and_normalize(const char *spec, dc_error_t *err) {
 
     skip_ws(&p);
 
-    if (*p == '\0') break;
+    if (*p == '\0')
+      break;
 
     if (*p != ',') {
       /* Any junk between items is invalid (incl letters, extra dots, etc.) */
@@ -318,40 +333,50 @@ dc_sel_t *dc_sel_parse_and_normalize(const char *spec, dc_error_t *err) {
 }
 
 bool dc_sel_wants(dc_sel_t *sel, uint64_t line_no) {
-  if (!sel || sel->nranges == 0) return false;
+  if (!sel || sel->nranges == 0)
+    return false;
 
   /* Advance cursor while line_no is beyond current range end */
   while (sel->cursor < sel->nranges) {
     dc_range_t r = sel->ranges[sel->cursor];
-    if (line_no < r.start) return false;
-    if (r.end == UINT64_MAX) return true;
-    if (line_no <= r.end) return true;
+    if (line_no < r.start)
+      return false;
+    if (r.end == UINT64_MAX)
+      return true;
+    if (line_no <= r.end)
+      return true;
     sel->cursor++;
   }
   return false;
 }
 
 uint64_t dc_sel_max_finite(dc_sel_t *sel, bool *has_max) {
-  if (has_max) *has_max = false;
-  if (!sel || sel->nranges == 0) return 0;
+  if (has_max)
+    *has_max = false;
+  if (!sel || sel->nranges == 0)
+    return 0;
 
   for (size_t i = 0; i < sel->nranges; i++) {
     if (sel->ranges[i].end == UINT64_MAX) {
-      if (has_max) *has_max = false;
+      if (has_max)
+        *has_max = false;
       return 0;
     }
   }
 
   uint64_t m = 0;
   for (size_t i = 0; i < sel->nranges; i++) {
-    if (sel->ranges[i].end > m) m = sel->ranges[i].end;
+    if (sel->ranges[i].end > m)
+      m = sel->ranges[i].end;
   }
-  if (has_max) *has_max = true;
+  if (has_max)
+    *has_max = true;
   return m;
 }
 
 void dc_sel_free(dc_sel_t *sel) {
-  if (!sel) return;
+  if (!sel)
+    return;
   free(sel->ranges);
   free(sel);
 }

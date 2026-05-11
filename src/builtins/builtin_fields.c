@@ -2,35 +2,39 @@
 
 #include "diamondcore.h"
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 
 // Bash loadable builtin headers (vendored minimal subset for loadables)
 #include "builtins.h"
 #include "shell.h"
 
-__attribute__((unused))
-static const char *fields_shortdoc = "fields SPEC [FILE...]";
+__attribute__((unused)) static const char *fields_shortdoc =
+    "fields SPEC [FILE...]";
 
 static char *fields_doc[] = {
-  "Select and emit specific 1-based fields from each input line.",
-  (char *)0,
+    "Select and emit specific 1-based fields from each input line.",
+    (char *)0,
 };
 
 // === ANCHOR:ERROR-HELPERS-BEGIN ===
 static int fields_usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "fields: %s\n", msg);
-  else dc_print_usage_fields(stderr);
+  if (msg && *msg)
+    fprintf(stderr, "fields: %s\n", msg);
+  else
+    dc_print_usage_fields(stderr);
   return 2;
 }
 
 static int fields_io_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "fields: %s\n", msg);
-  else fprintf(stderr, "fields: I/O error\n");
+  if (msg && *msg)
+    fprintf(stderr, "fields: %s\n", msg);
+  else
+    fprintf(stderr, "fields: I/O error\n");
   return 2;
 }
 
@@ -75,7 +79,8 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
 
     const uint8_t *line = v.ptr;
     size_t linelen = v.len;
-    if (v.ends_with_nl && linelen > 0) linelen--; // newline is not part of any field
+    if (v.ends_with_nl && linelen > 0)
+      linelen--; // newline is not part of any field
 
     dc_field_view_t *fields = NULL;
     size_t nfields = 0;
@@ -101,11 +106,13 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
     bool first = true;
 
     size_t limit = nfields;
-    if (has_max && max_finite < (uint64_t)limit) limit = (size_t)max_finite;
+    if (has_max && max_finite < (uint64_t)limit)
+      limit = (size_t)max_finite;
 
     for (size_t i = 0; i < limit; i++) {
       uint64_t idx = (uint64_t)(i + 1);
-      if (!dc_sel_wants(sel, idx)) continue;
+      if (!dc_sel_wants(sel, idx))
+        continue;
 
       if (!first) {
         if (fputc(join_ch, stdout) == EOF) {
@@ -159,13 +166,14 @@ static int fields_main(const char *spec, bool delim_mode, uint8_t delim,
 // === ANCHOR:CORE-MAIN-END ===
 
 // Parsing rules:
-// - Only --help, --tsv and -d DELIM are recognized (before SPEC, unless after --).
+// - Only --help, --tsv and -d DELIM are recognized (before SPEC, unless after
+// --).
 // - Any other -x token is an error unless after --, or token is exactly '-'.
 // - SPEC is required and is the first non-option token.
-__attribute__((visibility("default")))
-int fields_builtin(WORD_LIST *list) {
+__attribute__((visibility("default"))) int fields_builtin(WORD_LIST *list) {
   // === ANCHOR:SIGPIPE-BEGIN ===
-  // Ignore SIGPIPE so write failures show up as EPIPE/stdio errors and we return 2.
+  // Ignore SIGPIPE so write failures show up as EPIPE/stdio errors and we
+  // return 2.
   void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
   // === ANCHOR:SIGPIPE-END ===
 
@@ -190,7 +198,8 @@ int fields_builtin(WORD_LIST *list) {
   // === ANCHOR:ARGV-PARSE-BEGIN ===
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
-    if (!tok) tok = "";
+    if (!tok)
+      tok = "";
 
     if (!spec) {
       if (!end_opts && strcmp(tok, "--help") == 0) {
@@ -223,7 +232,8 @@ int fields_builtin(WORD_LIST *list) {
           }
           w = w->next;
           darg = w->word->word;
-          if (!darg) darg = "";
+          if (!darg)
+            darg = "";
         }
 
         if (delim_mode) {
@@ -240,7 +250,8 @@ int fields_builtin(WORD_LIST *list) {
         continue;
       }
 
-      if (!end_opts && tok[0] == '-' && tok[1] != '\0' && strcmp(tok, "-") != 0) {
+      if (!end_opts && tok[0] == '-' && tok[1] != '\0' &&
+          strcmp(tok, "-") != 0) {
         rc = fields_usage_err("unknown option (use --help)");
         goto out;
       }
@@ -288,12 +299,11 @@ out:
   // === ANCHOR:CLEANUP-END ===
 }
 
-__attribute__((visibility("default")))
-struct builtin fields_struct = {
-  .name = "fields",
-  .function = fields_builtin,
-  .flags = BUILTIN_ENABLED,
-  .long_doc = fields_doc,
-  .short_doc = (char *)"fields SPEC [FILE...]",
-  .handle = 0,
+__attribute__((visibility("default"))) struct builtin fields_struct = {
+    .name = "fields",
+    .function = fields_builtin,
+    .flags = BUILTIN_ENABLED,
+    .long_doc = fields_doc,
+    .short_doc = (char *)"fields SPEC [FILE...]",
+    .handle = 0,
 };
