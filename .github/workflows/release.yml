@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash-builtins \
+            build-essential
+
+      - name: Build release bundle
+        run: |
+          set -euxo pipefail
+          test -d /usr/include/bash
+          make dist BASH_SRC=/usr/include/bash
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: |
+            build/release/*.tar.gz
+            build/release/*.sha256
+          if-no-files-found: error

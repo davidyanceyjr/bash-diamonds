@@ -1,5 +1,7 @@
 # Bash Diamonds
 
+[![CI](https://github.com/davidyanceyjr/bash-diamonds/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/davidyanceyjr/bash-diamonds/actions/workflows/ci.yml)
+
 Bash Diamonds is a suite of Bash loadable builtins for line-oriented text processing.
 
 Normative contract:
