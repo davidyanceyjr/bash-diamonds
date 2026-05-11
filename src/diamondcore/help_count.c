@@ -3,7 +3,8 @@
 #include <stdio.h>
 
 void dc_print_help_count(FILE *out) {
-  if (!out) out = stdout;
+  if (!out)
+    out = stdout;
 
   fputs("usage: count [--] [FILE...]\n", out);
   fputs("       count --help\n", out);
@@ -19,11 +20,14 @@ void dc_print_help_count(FILE *out) {
   fputs("\n", out);
   fputs("Input:\n", out);
   fputs("  - Input is processed as a sequence of lines.\n", out);
-  fputs("  - A line ends in '\\n', or is the final unterminated line at EOF.\n", out);
+  fputs("  - A line ends in '\\n', or is the final unterminated line at EOF.\n",
+        out);
   fputs("  - The final unterminated line counts as a line.\n", out);
   fputs("\n", out);
   fputs("Output:\n", out);
-  fputs("  - Prints the line count as base-10 unsigned decimal followed by '\\n'.\n", out);
+  fputs("  - Prints the line count as base-10 unsigned decimal followed by "
+        "'\\n'.\n",
+        out);
   fputs("\n", out);
   fputs("Exit codes:\n", out);
   fputs("  0  success (count printed)\n", out);

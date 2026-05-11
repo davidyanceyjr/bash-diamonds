@@ -2,11 +2,11 @@
 
 #include "diamondcore.h"
 
-#include <sys/types.h>  /* ssize_t */
-#include <stdio.h>      /* getline */
 #include <errno.h>
+#include <stdio.h> /* getline */
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h> /* ssize_t */
 
 struct dc_line_reader {
   char **files;
@@ -19,14 +19,16 @@ struct dc_line_reader {
 };
 
 static bool open_next(dc_line_reader_t *lr, dc_error_t *err) {
-  if (!lr) return false;
+  if (!lr)
+    return false;
   if (lr->fp && !lr->fp_is_stdin) {
     fclose(lr->fp);
   }
   lr->fp = NULL;
   lr->fp_is_stdin = false;
 
-  if (lr->idx >= lr->file_count) return false;
+  if (lr->idx >= lr->file_count)
+    return false;
 
   const char *name = lr->files[lr->idx++];
   if (strcmp(name, "-") == 0) {
@@ -43,9 +45,11 @@ static bool open_next(dc_line_reader_t *lr, dc_error_t *err) {
   return true;
 }
 
-dc_line_reader_t *dc_lr_open(char *const *files, size_t file_count, dc_error_t *err) {
+dc_line_reader_t *dc_lr_open(char *const *files, size_t file_count,
+                             dc_error_t *err) {
   dc_err_init(err);
-  dc_line_reader_t *lr = (dc_line_reader_t *)calloc(1, sizeof(dc_line_reader_t));
+  dc_line_reader_t *lr =
+      (dc_line_reader_t *)calloc(1, sizeof(dc_line_reader_t));
   if (!lr) {
     dc_err_set(err, DC_ERR_NOMEM, "out of memory");
     return NULL;
@@ -68,7 +72,8 @@ dc_line_reader_t *dc_lr_open(char *const *files, size_t file_count, dc_error_t *
       dc_err_set(err, DC_ERR_NOMEM, "out of memory");
       return NULL;
     }
-    for (size_t i = 0; i < file_count; i++) lr->files[i] = files[i];
+    for (size_t i = 0; i < file_count; i++)
+      lr->files[i] = files[i];
     lr->file_count = file_count;
   }
 
@@ -108,7 +113,8 @@ bool dc_lr_next(dc_line_reader_t *lr, dc_line_view_t *out, dc_error_t *err) {
     // n < 0
     if (feof(lr->fp)) {
       // Move to next source.
-      if (lr->fp && !lr->fp_is_stdin) fclose(lr->fp);
+      if (lr->fp && !lr->fp_is_stdin)
+        fclose(lr->fp);
       lr->fp = NULL;
       lr->fp_is_stdin = false;
       continue;
@@ -121,8 +127,10 @@ bool dc_lr_next(dc_line_reader_t *lr, dc_line_view_t *out, dc_error_t *err) {
 }
 
 void dc_lr_close(dc_line_reader_t *lr) {
-  if (!lr) return;
-  if (lr->fp && !lr->fp_is_stdin) fclose(lr->fp);
+  if (!lr)
+    return;
+  if (lr->fp && !lr->fp_is_stdin)
+    fclose(lr->fp);
   free(lr->files);
   free(lr->buf);
   free(lr);

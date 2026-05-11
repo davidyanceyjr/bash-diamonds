@@ -7,16 +7,19 @@
 #include <string.h>
 
 void dc_err_init(dc_error_t *err) {
-  if (!err) return;
+  if (!err)
+    return;
   err->code = DC_ERR_NONE;
   err->msg[0] = '\0';
 }
 
 void dc_err_set(dc_error_t *err, dc_err_code_t code, const char *fmt, ...) {
-  if (!err) return;
+  if (!err)
+    return;
   err->code = code;
   err->msg[0] = '\0';
-  if (!fmt) return;
+  if (!fmt)
+    return;
   va_list ap;
   va_start(ap, fmt);
   vsnprintf(err->msg, sizeof(err->msg), fmt, ap);
@@ -26,7 +29,8 @@ void dc_err_set(dc_error_t *err, dc_err_code_t code, const char *fmt, ...) {
 }
 
 int dc_exit_code_from_error(const dc_error_t *err) {
-  if (!err) return 2;
+  if (!err)
+    return 2;
   switch (err->code) {
   case DC_ERR_NONE:
     return 0;

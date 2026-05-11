@@ -1,82 +1,89 @@
-#include "diamondcore.h"
 #include "dc_regex.h"
+#include "diamondcore.h"
 
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 
 #include "builtins.h"
 #include "shell.h"
 
 static char *replace_doc[] = {
-  "Perform per-line substitution and emit only modified lines.",
-  (char *)0,
+    "Perform per-line substitution and emit only modified lines.",
+    (char *)0,
 };
 
 static int usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "replace: %s\n", msg);
+  if (msg && *msg)
+    fprintf(stderr, "replace: %s\n", msg);
   dc_print_usage_replace(stderr);
   return 2;
 }
 
 static bool write_bytes(const uint8_t *p, size_t n) {
-  if (n == 0) return true;
+  if (n == 0)
+    return true;
   size_t w = fwrite(p, 1, n, stdout);
   return (w == n) && !ferror(stdout);
 }
 
 static bool bytes_eq(const uint8_t *a, const uint8_t *b, size_t n) {
-  if (n == 0) return true;
+  if (n == 0)
+    return true;
   return memcmp(a, b, n) == 0;
 }
 
-static bool literal_find_next(const uint8_t *hay,
-                              size_t hay_len,
-                              const uint8_t *needle,
-                              size_t needle_len,
-                              size_t start_at,
-                              size_t *out_start,
+static bool literal_find_next(const uint8_t *hay, size_t hay_len,
+                              const uint8_t *needle, size_t needle_len,
+                              size_t start_at, size_t *out_start,
                               size_t *out_end) {
-  if (!hay || !needle) return false;
-  if (needle_len == 0) return false;
-  if (start_at > hay_len) return false;
-  if (needle_len > hay_len) return false;
+  if (!hay || !needle)
+    return false;
+  if (needle_len == 0)
+    return false;
+  if (start_at > hay_len)
+    return false;
+  if (needle_len > hay_len)
+    return false;
 
   size_t last = hay_len - needle_len;
   for (size_t i = start_at; i <= last; i++) {
     if (bytes_eq(hay + i, needle, needle_len)) {
-      if (out_start) *out_start = i;
-      if (out_end) *out_end = i + needle_len;
+      if (out_start)
+        *out_start = i;
+      if (out_end)
+        *out_end = i + needle_len;
       return true;
     }
   }
   return false;
 }
 
-static int process_record_literal(const uint8_t *content,
-                                 size_t content_len,
-                                 const uint8_t *pat,
-                                 size_t pat_len,
-                                 const uint8_t *rep,
-                                 size_t rep_len,
-                                 bool has_delim) {
+static int process_record_literal(const uint8_t *content, size_t content_len,
+                                  const uint8_t *pat, size_t pat_len,
+                                  const uint8_t *rep, size_t rep_len,
+                                  bool has_delim) {
   size_t s = 0, e = 0;
-  if (!literal_find_next(content, content_len, pat, pat_len, 0, &s, &e)) return 1;
+  if (!literal_find_next(content, content_len, pat, pat_len, 0, &s, &e))
+    return 1;
 
   size_t last = 0;
   size_t cursor = 0;
 
   for (;;) {
-    if (!literal_find_next(content, content_len, pat, pat_len, cursor, &s, &e)) break;
+    if (!literal_find_next(content, content_len, pat, pat_len, cursor, &s, &e))
+      break;
 
     if (s > last) {
-      if (!write_bytes(content + last, s - last)) return 2;
+      if (!write_bytes(content + last, s - last))
+        return 2;
     }
     if (rep_len > 0) {
-      if (!write_bytes(rep, rep_len)) return 2;
+      if (!write_bytes(rep, rep_len))
+        return 2;
     }
 
     last = e;
@@ -84,28 +91,28 @@ static int process_record_literal(const uint8_t *content,
   }
 
   if (last < content_len) {
-    if (!write_bytes(content + last, content_len - last)) return 2;
+    if (!write_bytes(content + last, content_len - last))
+      return 2;
   }
 
   if (has_delim) {
     uint8_t nl = 0x0A;
-    if (!write_bytes(&nl, 1)) return 2;
+    if (!write_bytes(&nl, 1))
+      return 2;
   }
 
   return 0;
 }
 
-static int process_record_regex(const uint8_t *content,
-                               size_t content_len,
-                               const dc_regex_t *re,
-                               const uint8_t *rep,
-                               size_t rep_len,
-                               bool has_delim) {
+static int process_record_regex(const uint8_t *content, size_t content_len,
+                                const dc_regex_t *re, const uint8_t *rep,
+                                size_t rep_len, bool has_delim) {
   size_t s = 0, e = 0;
   bool limit = false;
 
   if (!dc_regex_find_next(re, content, content_len, 0, &s, &e, &limit)) {
-    if (limit) return 3;
+    if (limit)
+      return 3;
     return 1;
   }
 
@@ -115,33 +122,41 @@ static int process_record_regex(const uint8_t *content,
   for (;;) {
     limit = false;
     if (!dc_regex_find_next(re, content, content_len, cursor, &s, &e, &limit)) {
-      if (limit) return 3;
+      if (limit)
+        return 3;
       break;
     }
 
     if (s > last) {
-      if (!write_bytes(content + last, s - last)) return 2;
+      if (!write_bytes(content + last, s - last))
+        return 2;
     }
     if (rep_len > 0) {
-      if (!write_bytes(rep, rep_len)) return 2;
+      if (!write_bytes(rep, rep_len))
+        return 2;
     }
 
     last = e;
 
     /* Zero-length match must advance by >= 1 byte */
-    if (e > cursor) cursor = e;
-    else cursor = (cursor < content_len) ? (cursor + 1) : (content_len + 1);
+    if (e > cursor)
+      cursor = e;
+    else
+      cursor = (cursor < content_len) ? (cursor + 1) : (content_len + 1);
 
-    if (cursor > content_len) break;
+    if (cursor > content_len)
+      break;
   }
 
   if (last < content_len) {
-    if (!write_bytes(content + last, content_len - last)) return 2;
+    if (!write_bytes(content + last, content_len - last))
+      return 2;
   }
 
   if (has_delim) {
     uint8_t nl = 0x0A;
-    if (!write_bytes(&nl, 1)) return 2;
+    if (!write_bytes(&nl, 1))
+      return 2;
   }
 
   return 0;
@@ -168,7 +183,8 @@ static int replace_builtin(WORD_LIST *list) {
 
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *arg = w->word->word;
-    if (!arg) continue;
+    if (!arg)
+      continue;
 
     /* --help only recognized during option parsing, before PATTERN */
     if (!end_opts && pattern_s == NULL && strcmp(arg, "--help") == 0) {
@@ -199,9 +215,10 @@ static int replace_builtin(WORD_LIST *list) {
       continue;
     }
 
-    /* Strict option parsing: any '-' token before '--' and before PATTERN is an option token.
-     * Since replace has positional-primary PATTERN, unknown option tokens are usage errors.
-     * This intentionally includes single "-" (pattern beginning with '-' requires '--').
+    /* Strict option parsing: any '-' token before '--' and before PATTERN is an
+     * option token. Since replace has positional-primary PATTERN, unknown
+     * option tokens are usage errors. This intentionally includes single "-"
+     * (pattern beginning with '-' requires '--').
      */
     if (!end_opts && pattern_s == NULL && arg[0] == '-') {
       free(files);
@@ -256,8 +273,10 @@ static int replace_builtin(WORD_LIST *list) {
     errbuf[0] = '\0';
     if (!dc_regex_compile(&re, pattern_s, errbuf)) {
       if (errbuf[0]) {
-        if (strncmp(errbuf, "match:", 6) == 0) fprintf(stderr, "replace:%s\n", errbuf + 6);
-        else fprintf(stderr, "replace: %s\n", errbuf);
+        if (strncmp(errbuf, "match:", 6) == 0)
+          fprintf(stderr, "replace:%s\n", errbuf + 6);
+        else
+          fprintf(stderr, "replace: %s\n", errbuf);
       } else {
         fprintf(stderr, "replace: regex compile error\n");
       }
@@ -272,10 +291,12 @@ static int replace_builtin(WORD_LIST *list) {
 
   dc_line_reader_t *lr = dc_lr_open(files, file_count, &err);
   if (!lr) {
-    if (re) dc_regex_free(re);
+    if (re)
+      dc_regex_free(re);
     free(files);
     signal(SIGPIPE, old_sigpipe);
-    fprintf(stderr, "replace: %s\n", err.msg[0] ? err.msg : "cannot open input");
+    fprintf(stderr, "replace: %s\n",
+            err.msg[0] ? err.msg : "cannot open input");
     return 2;
   }
 
@@ -288,7 +309,8 @@ static int replace_builtin(WORD_LIST *list) {
     if (!ok) {
       if (err.code != DC_ERR_NONE) {
         dc_lr_close(lr);
-        if (re) dc_regex_free(re);
+        if (re)
+          dc_regex_free(re);
         free(files);
         signal(SIGPIPE, old_sigpipe);
         fprintf(stderr, "replace: %s\n", err.msg[0] ? err.msg : "read error");
@@ -298,13 +320,16 @@ static int replace_builtin(WORD_LIST *list) {
     }
 
     size_t content_len = v.len;
-    if (v.ends_with_nl && content_len > 0) content_len--;
+    if (v.ends_with_nl && content_len > 0)
+      content_len--;
 
     int rc;
     if (literal) {
-      rc = process_record_literal(v.ptr, content_len, pat, pat_len, rep, rep_len, v.ends_with_nl);
+      rc = process_record_literal(v.ptr, content_len, pat, pat_len, rep,
+                                  rep_len, v.ends_with_nl);
     } else {
-      rc = process_record_regex(v.ptr, content_len, re, rep, rep_len, v.ends_with_nl);
+      rc = process_record_regex(v.ptr, content_len, re, rep, rep_len,
+                                v.ends_with_nl);
       if (rc == 3) {
         fprintf(stderr, "replace: regex execution limit exceeded\n");
         dc_lr_close(lr);
@@ -319,7 +344,8 @@ static int replace_builtin(WORD_LIST *list) {
       emitted_any = true;
     } else if (rc == 2) {
       dc_lr_close(lr);
-      if (re) dc_regex_free(re);
+      if (re)
+        dc_regex_free(re);
       free(files);
       signal(SIGPIPE, old_sigpipe);
       return 2;
@@ -327,7 +353,8 @@ static int replace_builtin(WORD_LIST *list) {
   }
 
   dc_lr_close(lr);
-  if (re) dc_regex_free(re);
+  if (re)
+    dc_regex_free(re);
   free(files);
 
   if (emitted_any) {
@@ -341,12 +368,12 @@ static int replace_builtin(WORD_LIST *list) {
   return emitted_any ? 0 : 1;
 }
 
-__attribute__((visibility("default")))
-struct builtin replace_struct = {
-  .name = "replace",
-  .function = replace_builtin,
-  .flags = BUILTIN_ENABLED,
-  .long_doc = replace_doc,
-  .short_doc = (char *)"replace [--literal] PATTERN REPLACEMENT [--] [FILE...]",
-  .handle = 0,
+__attribute__((visibility("default"))) struct builtin replace_struct = {
+    .name = "replace",
+    .function = replace_builtin,
+    .flags = BUILTIN_ENABLED,
+    .long_doc = replace_doc,
+    .short_doc =
+        (char *)"replace [--literal] PATTERN REPLACEMENT [--] [FILE...]",
+    .handle = 0,
 };

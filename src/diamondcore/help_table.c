@@ -5,7 +5,8 @@
 #include <stdio.h>
 
 void dc_print_help_table(FILE *out) {
-  if (!out) out = stdout;
+  if (!out)
+    out = stdout;
 
   fputs("usage: table [--] [FILE...]\n", out);
   fputs("       table --help\n", out);
@@ -23,16 +24,24 @@ void dc_print_help_table(FILE *out) {
   fputs("\n", out);
 
   fputs("Input:\n", out);
-  fputs("  - Fields are split by runs of spaces and tabs (leading/trailing ignored).\n", out);
+  fputs("  - Fields are split by runs of spaces and tabs (leading/trailing "
+        "ignored).\n",
+        out);
   fputs("  - Empty/whitespace-only lines are not emitted.\n", out);
-  fputs("  - stdin (including '-') is not supported (non-seekable input).\n", out);
+  fputs("  - stdin (including '-') is not supported (non-seekable input).\n",
+        out);
   fputs("\n", out);
 
   fputs("Output:\n", out);
-  fputs("  - Columns are padded with spaces to align to the maximum width per column.\n", out);
-  fputs("  - Minimum column separation: 1 space after column 1; 2 spaces after later columns.\n", out);
+  fputs("  - Columns are padded with spaces to align to the maximum width per "
+        "column.\n",
+        out);
+  fputs("  - Minimum column separation: 1 space after column 1; 2 spaces after "
+        "later columns.\n",
+        out);
   fputs("  - No trailing spaces are written.\n", out);
-  fputs("  - Newlines are preserved only when an input line is emitted.\n", out);
+  fputs("  - Newlines are preserved only when an input line is emitted.\n",
+        out);
   fputs("\n", out);
 
   dc_print_help_common_exit_codes(out);

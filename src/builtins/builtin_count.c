@@ -4,34 +4,38 @@
 
 #include <errno.h>
 #include <inttypes.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 
 // Bash loadable builtin headers
 #include "builtins.h"
 #include "shell.h"
 
-__attribute__((unused))
-static const char *count_shortdoc = "count [--] [FILE...]";
+__attribute__((unused)) static const char *count_shortdoc =
+    "count [--] [FILE...]";
 
 static char *count_doc[] = {
-  "Count input lines.",
-  (char *)0,
+    "Count input lines.",
+    (char *)0,
 };
 
 static int count_usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "count: %s\n", msg);
-  else dc_print_usage_count(stderr);
+  if (msg && *msg)
+    fprintf(stderr, "count: %s\n", msg);
+  else
+    dc_print_usage_count(stderr);
   return 2;
 }
 
 static int count_io_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "count: %s\n", msg);
-  else fprintf(stderr, "count: I/O error\n");
+  if (msg && *msg)
+    fprintf(stderr, "count: %s\n", msg);
+  else
+    fprintf(stderr, "count: I/O error\n");
   return 2;
 }
 
@@ -74,8 +78,7 @@ static int count_main(char *const *files, size_t file_count) {
   return 0;
 }
 
-__attribute__((visibility("default")))
-int count_builtin(WORD_LIST *list) {
+__attribute__((visibility("default"))) int count_builtin(WORD_LIST *list) {
   // === ANCHOR:SIGPIPE-BEGIN ===
   void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
   // === ANCHOR:SIGPIPE-END ===
@@ -95,7 +98,8 @@ int count_builtin(WORD_LIST *list) {
   // === ANCHOR:ARGV-PARSE-BEGIN ===
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
-    if (!tok) tok = "";
+    if (!tok)
+      tok = "";
 
     if (!end_opts && strcmp(tok, "--help") == 0) {
       rc = count_help();
@@ -136,12 +140,11 @@ out:
   // === ANCHOR:CLEANUP-END ===
 }
 
-__attribute__((visibility("default")))
-struct builtin count_struct = {
-  .name = "count",
-  .function = count_builtin,
-  .flags = BUILTIN_ENABLED,
-  .long_doc = count_doc,
-  .short_doc = (char *)"count [--] [FILE...]",
-  .handle = 0,
+__attribute__((visibility("default"))) struct builtin count_struct = {
+    .name = "count",
+    .function = count_builtin,
+    .flags = BUILTIN_ENABLED,
+    .long_doc = count_doc,
+    .short_doc = (char *)"count [--] [FILE...]",
+    .handle = 0,
 };

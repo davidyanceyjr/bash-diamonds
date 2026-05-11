@@ -5,12 +5,14 @@
 #include <stdio.h>
 
 void dc_print_help_trim(FILE *out) {
-  if (!out) out = stdout;
+  if (!out)
+    out = stdout;
 
   fputs("usage: trim [--] [FILE...]\n", out);
   fputs("       trim --help\n", out);
   fputs("\n", out);
-  fputs("Remove leading and trailing ASCII whitespace from each input line.\n", out);
+  fputs("Remove leading and trailing ASCII whitespace from each input line.\n",
+        out);
   fputs("Lines that become empty after trimming are not emitted.\n", out);
   fputs("\n", out);
 
@@ -28,11 +30,15 @@ void dc_print_help_trim(FILE *out) {
 
   fputs("Trimming:\n", out);
   fputs("  - Trims ASCII: space, tab, CR, VT, FF.\n", out);
-  fputs("  - Newline is structural and preserved only when a line is emitted.\n", out);
+  fputs(
+      "  - Newline is structural and preserved only when a line is emitted.\n",
+      out);
   fputs("\n", out);
 
   fputs("Output:\n", out);
-  fputs("  - If trimmed content is non-empty: emits it; preserves trailing newline if present.\n", out);
+  fputs("  - If trimmed content is non-empty: emits it; preserves trailing "
+        "newline if present.\n",
+        out);
   fputs("  - If trimmed content is empty: emits nothing for that line.\n", out);
   fputs("\n", out);
 

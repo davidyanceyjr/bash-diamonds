@@ -15,8 +15,8 @@
 #include "builtins.h"
 #include "shell.h"
 
-__attribute__((unused))
-static const char *table_shortdoc = "table [--] [FILE...]";
+__attribute__((unused)) static const char *table_shortdoc =
+    "table [--] [FILE...]";
 
 static char *table_doc[] = {
     "Format delimited text into aligned columns for human output.",
@@ -25,14 +25,18 @@ static char *table_doc[] = {
 
 // === ANCHOR:ERROR-HELPERS-BEGIN ===
 static int table_usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "table: %s\n", msg);
-  else dc_print_usage_table(stderr);
+  if (msg && *msg)
+    fprintf(stderr, "table: %s\n", msg);
+  else
+    dc_print_usage_table(stderr);
   return 2;
 }
 
 static int table_io_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "table: %s\n", msg);
-  else fprintf(stderr, "table: I/O error\n");
+  if (msg && *msg)
+    fprintf(stderr, "table: %s\n", msg);
+  else
+    fprintf(stderr, "table: I/O error\n");
   return 2;
 }
 
@@ -49,9 +53,11 @@ static inline bool is_st_ws(uint8_t c) { return (c == ' ' || c == '\t'); }
 // - Returns number of fields; caller free()s *out_fields.
 // - On allocation failure returns (size_t)-1.
 static size_t table_split_space_tab(const uint8_t *line, size_t len,
-                                   dc_field_view_t **out_fields) {
-  if (out_fields) *out_fields = NULL;
-  if (!out_fields || (!line && len != 0)) return 0;
+                                    dc_field_view_t **out_fields) {
+  if (out_fields)
+    *out_fields = NULL;
+  if (!out_fields || (!line && len != 0))
+    return 0;
 
   dc_field_view_t *v = NULL;
   size_t cap = 0;
@@ -59,13 +65,17 @@ static size_t table_split_space_tab(const uint8_t *line, size_t len,
 
   size_t i = 0;
   while (i < len) {
-    while (i < len && is_st_ws(line[i])) i++;
-    if (i >= len) break;
+    while (i < len && is_st_ws(line[i]))
+      i++;
+    if (i >= len)
+      break;
 
     size_t start = i;
-    while (i < len && !is_st_ws(line[i])) i++;
+    while (i < len && !is_st_ws(line[i]))
+      i++;
     size_t flen = i - start;
-    if (flen == 0) continue;
+    if (flen == 0)
+      continue;
 
     if (cnt == cap) {
       size_t ncap = cap ? cap * 2 : 8;
@@ -108,16 +118,20 @@ static int table_nonseekable_err(void) {
 }
 
 static bool table_check_seekable_files(char *const *files, size_t file_count,
-                                      char *errbuf, size_t errcap) {
-  if (errbuf && errcap) errbuf[0] = '\0';
+                                       char *errbuf, size_t errcap) {
+  if (errbuf && errcap)
+    errbuf[0] = '\0';
 
-  if (file_count == 0) return false;
+  if (file_count == 0)
+    return false;
 
   for (size_t i = 0; i < file_count; i++) {
     const char *name = files[i];
-    if (!name) name = "";
+    if (!name)
+      name = "";
 
-    if (strcmp(name, "-") == 0) return false;
+    if (strcmp(name, "-") == 0)
+      return false;
 
     struct stat st;
     if (stat(name, &st) != 0) {
@@ -127,22 +141,27 @@ static bool table_check_seekable_files(char *const *files, size_t file_count,
       return false;
     }
 
-    if (!S_ISREG(st.st_mode)) return false;
+    if (!S_ISREG(st.st_mode))
+      return false;
   }
 
   return true;
 }
 
 static int table_pass_compute_widths(char *const *files, size_t file_count,
-                                    size_t **out_widths, size_t *out_ncols,
-                                    bool *out_any) {
-  if (out_widths) *out_widths = NULL;
-  if (out_ncols) *out_ncols = 0;
-  if (out_any) *out_any = false;
+                                     size_t **out_widths, size_t *out_ncols,
+                                     bool *out_any) {
+  if (out_widths)
+    *out_widths = NULL;
+  if (out_ncols)
+    *out_ncols = 0;
+  if (out_any)
+    *out_any = false;
 
   dc_error_t err;
   dc_line_reader_t *lr = dc_lr_open(files, file_count, &err);
-  if (!lr) return table_io_err(err.msg[0] ? err.msg : "cannot open input");
+  if (!lr)
+    return table_io_err(err.msg[0] ? err.msg : "cannot open input");
 
   size_t *widths = NULL;
   size_t ncols = 0;
@@ -162,7 +181,8 @@ static int table_pass_compute_widths(char *const *files, size_t file_count,
 
     const uint8_t *line = v.ptr;
     size_t linelen = v.len;
-    if (v.ends_with_nl && linelen > 0) linelen--; // exclude '\n'
+    if (v.ends_with_nl && linelen > 0)
+      linelen--; // exclude '\n'
 
     dc_field_view_t *fields = NULL;
     size_t nf = table_split_space_tab(line, linelen, &fields);
@@ -186,13 +206,15 @@ static int table_pass_compute_widths(char *const *files, size_t file_count,
         free(widths);
         return table_io_err("out of memory");
       }
-      for (size_t i = ncols; i < nf; i++) nw[i] = 0;
+      for (size_t i = ncols; i < nf; i++)
+        nw[i] = 0;
       widths = nw;
       ncols = nf;
     }
 
     for (size_t i = 0; i < nf; i++) {
-      if (fields[i].len > widths[i]) widths[i] = fields[i].len;
+      if (fields[i].len > widths[i])
+        widths[i] = fields[i].len;
     }
 
     free(fields);
@@ -200,23 +222,28 @@ static int table_pass_compute_widths(char *const *files, size_t file_count,
 
   dc_lr_close(lr);
 
-  if (out_widths) *out_widths = widths;
-  else free(widths);
+  if (out_widths)
+    *out_widths = widths;
+  else
+    free(widths);
 
-  if (out_ncols) *out_ncols = ncols;
-  if (out_any) *out_any = any;
+  if (out_ncols)
+    *out_ncols = ncols;
+  if (out_any)
+    *out_any = any;
 
   return 0;
 }
 
 static int table_pass_emit(char *const *files, size_t file_count,
-                           const size_t *widths, size_t ncols,
-                           bool *out_any) {
-  if (out_any) *out_any = false;
+                           const size_t *widths, size_t ncols, bool *out_any) {
+  if (out_any)
+    *out_any = false;
 
   dc_error_t err;
   dc_line_reader_t *lr = dc_lr_open(files, file_count, &err);
-  if (!lr) return table_io_err(err.msg[0] ? err.msg : "cannot open input");
+  if (!lr)
+    return table_io_err(err.msg[0] ? err.msg : "cannot open input");
 
   bool any = false;
 
@@ -233,7 +260,8 @@ static int table_pass_emit(char *const *files, size_t file_count,
 
     const uint8_t *line = v.ptr;
     size_t linelen = v.len;
-    if (v.ends_with_nl && linelen > 0) linelen--; // exclude '\n'
+    if (v.ends_with_nl && linelen > 0)
+      linelen--; // exclude '\n'
 
     dc_field_view_t *fields = NULL;
     size_t nf = table_split_space_tab(line, linelen, &fields);
@@ -265,7 +293,8 @@ static int table_pass_emit(char *const *files, size_t file_count,
         size_t colw = (i < ncols) ? widths[i] : 0;
         size_t minsep = table_min_sep(i);
         size_t pad = minsep;
-        if (colw > n) pad += (colw - n);
+        if (colw > n)
+          pad += (colw - n);
         for (size_t s = 0; s < pad; s++) {
           if (fputc(' ', stdout) == EOF) {
             free(fields);
@@ -295,7 +324,8 @@ static int table_pass_emit(char *const *files, size_t file_count,
     }
   }
 
-  if (out_any) *out_any = any;
+  if (out_any)
+    *out_any = any;
   return 0;
 }
 
@@ -303,7 +333,8 @@ static int table_pass_emit(char *const *files, size_t file_count,
 static int table_main(char *const *files, size_t file_count) {
   char errbuf[256];
   if (!table_check_seekable_files(files, file_count, errbuf, sizeof(errbuf))) {
-    if (errbuf[0]) return table_io_err(errbuf);
+    if (errbuf[0])
+      return table_io_err(errbuf);
     return table_nonseekable_err();
   }
 
@@ -325,7 +356,8 @@ static int table_main(char *const *files, size_t file_count) {
   bool any2 = false;
   rc = table_pass_emit(files, file_count, widths, ncols, &any2);
   free(widths);
-  if (rc != 0) return rc;
+  if (rc != 0)
+    return rc;
   return any2 ? 0 : 1;
 }
 // === ANCHOR:CORE-MAIN-END ===
@@ -333,8 +365,7 @@ static int table_main(char *const *files, size_t file_count) {
 // Parse rules:
 // - Recognizes --help and -- (end option parsing).
 // - Any other -x token before -- is an error unless token is exactly '-'.
-__attribute__((visibility("default")))
-int table_builtin(WORD_LIST *list) {
+__attribute__((visibility("default"))) int table_builtin(WORD_LIST *list) {
   // === ANCHOR:SIGPIPE-BEGIN ===
   void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
   // === ANCHOR:SIGPIPE-END ===
@@ -353,7 +384,8 @@ int table_builtin(WORD_LIST *list) {
 
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
-    if (!tok) tok = "";
+    if (!tok)
+      tok = "";
 
     if (!end_opts && strcmp(tok, "--help") == 0) {
       rc = table_help();
@@ -392,8 +424,7 @@ out:
   return rc;
 }
 
-__attribute__((visibility("default")))
-struct builtin table_struct = {
+__attribute__((visibility("default"))) struct builtin table_struct = {
     .name = "table",
     .function = table_builtin,
     .flags = BUILTIN_ENABLED,

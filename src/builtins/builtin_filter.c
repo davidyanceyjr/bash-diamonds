@@ -2,22 +2,22 @@
 
 #include "diamondcore.h"
 
+#include <signal.h> // ANCHOR:SIGPIPE-INCLUDE
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>  // ANCHOR:SIGPIPE-INCLUDE
 
 #include "builtins.h"
 #include "shell.h"
 
-__attribute__((unused))
-static const char *filter_shortdoc = "filter EXPR [--] [FILE...]";
+__attribute__((unused)) static const char *filter_shortdoc =
+    "filter EXPR [--] [FILE...]";
 
 static char *filter_doc[] = {
-  "Select input lines whose fields satisfy a constrained boolean expression.",
-  (char *)0,
+    "Select input lines whose fields satisfy a constrained boolean expression.",
+    (char *)0,
 };
 
 /* =============================================================================
@@ -26,14 +26,18 @@ static char *filter_doc[] = {
  */
 
 static int filter_usage_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "filter: %s\n", msg);
-  else dc_print_usage_filter(stderr);
+  if (msg && *msg)
+    fprintf(stderr, "filter: %s\n", msg);
+  else
+    dc_print_usage_filter(stderr);
   return 2;
 }
 
 static int filter_io_err(const char *msg) {
-  if (msg && *msg) fprintf(stderr, "filter: %s\n", msg);
-  else fprintf(stderr, "filter: I/O error\n");
+  if (msg && *msg)
+    fprintf(stderr, "filter: %s\n", msg);
+  else
+    fprintf(stderr, "filter: I/O error\n");
   return 2;
 }
 
@@ -69,9 +73,9 @@ typedef struct {
   enum tok_type t;
   const char *start;
   size_t len;
-  uint64_t u64;   /* for TOK_FIELD */
-  int64_t i64;    /* for TOK_INT */
-  char *owned;    /* for TOK_STR (unescaped), and TOK_INT (lexeme copy) */
+  uint64_t u64; /* for TOK_FIELD */
+  int64_t i64;  /* for TOK_INT */
+  char *owned;  /* for TOK_STR (unescaped), and TOK_INT (lexeme copy) */
   size_t owned_len;
 } tok_t;
 
@@ -84,8 +88,10 @@ typedef struct {
 } lexer_t;
 
 static bool lex_err(lexer_t *lx, const char *msg) {
-  if (!lx) return false;
-  snprintf(lx->err, sizeof(lx->err), "%s", msg ? msg : "expression parse error");
+  if (!lx)
+    return false;
+  snprintf(lx->err, sizeof(lx->err), "%s",
+           msg ? msg : "expression parse error");
   return false;
 }
 
@@ -94,30 +100,38 @@ static inline bool is_ws_ch(unsigned char c) {
           c == '\f');
 }
 
-static inline bool is_digit_ch(unsigned char c) { return (c >= '0' && c <= '9'); }
+static inline bool is_digit_ch(unsigned char c) {
+  return (c >= '0' && c <= '9');
+}
 
 static bool parse_i64_bytes(const uint8_t *p, size_t n, int64_t *out) {
-  if (!p || n == 0 || !out) return false;
+  if (!p || n == 0 || !out)
+    return false;
   size_t i = 0;
   bool neg = false;
   if (p[i] == '-') {
     neg = true;
     i++;
-    if (i >= n) return false;
+    if (i >= n)
+      return false;
   }
   uint64_t acc = 0;
   for (; i < n; i++) {
-    if (!is_digit_ch((unsigned char)p[i])) return false;
+    if (!is_digit_ch((unsigned char)p[i]))
+      return false;
     uint64_t d = (uint64_t)(p[i] - '0');
-    if (acc > UINT64_MAX / 10ULL) return false;
+    if (acc > UINT64_MAX / 10ULL)
+      return false;
     acc *= 10ULL;
-    if (acc > UINT64_MAX - d) return false;
+    if (acc > UINT64_MAX - d)
+      return false;
     acc += d;
   }
 
   if (neg) {
     /* Allow INT64_MIN exactly: magnitude 9223372036854775808 */
-    if (acc > (uint64_t)INT64_MAX + 1ULL) return false;
+    if (acc > (uint64_t)INT64_MAX + 1ULL)
+      return false;
     if (acc == (uint64_t)INT64_MAX + 1ULL) {
       *out = INT64_MIN;
       return true;
@@ -126,45 +140,56 @@ static bool parse_i64_bytes(const uint8_t *p, size_t n, int64_t *out) {
     return true;
   }
 
-  if (acc > (uint64_t)INT64_MAX) return false;
+  if (acc > (uint64_t)INT64_MAX)
+    return false;
   *out = (int64_t)acc;
   return true;
 }
 
 static bool parse_i64_cstr(const char *s, int64_t *out) {
-  if (!s) return false;
+  if (!s)
+    return false;
   return parse_i64_bytes((const uint8_t *)s, strlen(s), out);
 }
 
-static int bytes_cmp(const uint8_t *a, size_t alen, const uint8_t *b, size_t blen) {
+static int bytes_cmp(const uint8_t *a, size_t alen, const uint8_t *b,
+                     size_t blen) {
   size_t n = (alen < blen) ? alen : blen;
   for (size_t i = 0; i < n; i++) {
     unsigned int av = (unsigned int)a[i];
     unsigned int bv = (unsigned int)b[i];
-    if (av < bv) return -1;
-    if (av > bv) return 1;
+    if (av < bv)
+      return -1;
+    if (av > bv)
+      return 1;
   }
-  if (alen < blen) return -1;
-  if (alen > blen) return 1;
+  if (alen < blen)
+    return -1;
+  if (alen > blen)
+    return 1;
   return 0;
 }
 
 static void tok_free(tok_t *t) {
-  if (!t) return;
+  if (!t)
+    return;
   free(t->owned);
   t->owned = NULL;
   t->owned_len = 0;
 }
 
 static bool lex_next(lexer_t *lx, tok_t *out) {
-  if (!lx || !out) return false;
+  if (!lx || !out)
+    return false;
   memset(out, 0, sizeof(*out));
   out->t = TOK_EOF;
 
   /* limits */
-  if (lx->token_count >= 2048) return lex_err(lx, "expression too complex");
+  if (lx->token_count >= 2048)
+    return lex_err(lx, "expression too complex");
 
-  while (lx->i < lx->len && is_ws_ch((unsigned char)lx->s[lx->i])) lx->i++;
+  while (lx->i < lx->len && is_ws_ch((unsigned char)lx->s[lx->i]))
+    lx->i++;
   if (lx->i >= lx->len) {
     out->t = TOK_EOF;
     lx->token_count++;
@@ -228,59 +253,63 @@ static bool lex_next(lexer_t *lx, tok_t *out) {
 
   /* One-char tokens */
   switch (p[0]) {
-    case '(':
-      out->t = TOK_LPAREN;
-      out->start = p;
-      out->len = 1;
-      lx->i += 1;
-      lx->token_count++;
-      return true;
-    case ')':
-      out->t = TOK_RPAREN;
-      out->start = p;
-      out->len = 1;
-      lx->i += 1;
-      lx->token_count++;
-      return true;
-    case '!':
-      out->t = TOK_NOT;
-      out->start = p;
-      out->len = 1;
-      lx->i += 1;
-      lx->token_count++;
-      return true;
-    case '<':
-      out->t = TOK_LT;
-      out->start = p;
-      out->len = 1;
-      lx->i += 1;
-      lx->token_count++;
-      return true;
-    case '>':
-      out->t = TOK_GT;
-      out->start = p;
-      out->len = 1;
-      lx->i += 1;
-      lx->token_count++;
-      return true;
-    default:
-      break;
+  case '(':
+    out->t = TOK_LPAREN;
+    out->start = p;
+    out->len = 1;
+    lx->i += 1;
+    lx->token_count++;
+    return true;
+  case ')':
+    out->t = TOK_RPAREN;
+    out->start = p;
+    out->len = 1;
+    lx->i += 1;
+    lx->token_count++;
+    return true;
+  case '!':
+    out->t = TOK_NOT;
+    out->start = p;
+    out->len = 1;
+    lx->i += 1;
+    lx->token_count++;
+    return true;
+  case '<':
+    out->t = TOK_LT;
+    out->start = p;
+    out->len = 1;
+    lx->i += 1;
+    lx->token_count++;
+    return true;
+  case '>':
+    out->t = TOK_GT;
+    out->start = p;
+    out->len = 1;
+    lx->i += 1;
+    lx->token_count++;
+    return true;
+  default:
+    break;
   }
 
   /* Field reference: $<digits> (must be >0) */
   if (p[0] == '$') {
-    if (rem < 2 || !is_digit_ch((unsigned char)p[1])) return lex_err(lx, "invalid field reference");
+    if (rem < 2 || !is_digit_ch((unsigned char)p[1]))
+      return lex_err(lx, "invalid field reference");
     size_t j = 1;
     uint64_t v = 0;
     while (j < rem && is_digit_ch((unsigned char)p[j])) {
       uint64_t d = (uint64_t)(p[j] - '0');
-      if (v > UINT64_MAX / 10ULL) return lex_err(lx, "field index overflow");
+      if (v > UINT64_MAX / 10ULL)
+        return lex_err(lx, "field index overflow");
       v *= 10ULL;
-      if (v > UINT64_MAX - d) return lex_err(lx, "field index overflow");
+      if (v > UINT64_MAX - d)
+        return lex_err(lx, "field index overflow");
       v += d;
       j++;
     }
-    if (v == 0) return lex_err(lx, "$0 is invalid");
+    if (v == 0)
+      return lex_err(lx, "$0 is invalid");
     out->t = TOK_FIELD;
     out->start = p;
     out->len = j;
@@ -350,11 +379,14 @@ static bool lex_next(lexer_t *lx, tok_t *out) {
     size_t j = 0;
     if (p[0] == '-') {
       j++;
-      if (j >= rem || !is_digit_ch((unsigned char)p[j])) return lex_err(lx, "invalid integer literal");
+      if (j >= rem || !is_digit_ch((unsigned char)p[j]))
+        return lex_err(lx, "invalid integer literal");
     }
-    while (j < rem && is_digit_ch((unsigned char)p[j])) j++;
+    while (j < rem && is_digit_ch((unsigned char)p[j]))
+      j++;
     char *lex = (char *)malloc(j + 1);
-    if (!lex) return lex_err(lx, "out of memory");
+    if (!lex)
+      return lex_err(lx, "out of memory");
     memcpy(lex, p, j);
     lex[j] = '\0';
     int64_t iv = 0;
@@ -413,14 +445,16 @@ typedef struct {
 } parser_t;
 
 static void operand_free(operand_t *o) {
-  if (!o) return;
+  if (!o)
+    return;
   free(o->s);
   o->s = NULL;
   o->slen = 0;
 }
 
 static void node_free(node_t *n) {
-  if (!n) return;
+  if (!n)
+    return;
   if (n->t == N_AND || n->t == N_OR || n->t == N_NOT) {
     node_free(n->a);
     node_free(n->b);
@@ -433,23 +467,28 @@ static void node_free(node_t *n) {
 }
 
 static bool parser_err(parser_t *ps, const char *msg) {
-  if (!ps) return false;
-  snprintf(ps->err, sizeof(ps->err), "%s", msg ? msg : "expression parse error");
+  if (!ps)
+    return false;
+  snprintf(ps->err, sizeof(ps->err), "%s",
+           msg ? msg : "expression parse error");
   return false;
 }
 
 static bool ps_next(parser_t *ps) {
-  if (!ps) return false;
+  if (!ps)
+    return false;
   tok_free(&ps->cur);
   if (!lex_next(&ps->lx, &ps->cur)) {
-    snprintf(ps->err, sizeof(ps->err), "%s", ps->lx.err[0] ? ps->lx.err : "expression parse error");
+    snprintf(ps->err, sizeof(ps->err), "%s",
+             ps->lx.err[0] ? ps->lx.err : "expression parse error");
     return false;
   }
   return true;
 }
 
 static node_t *ps_new_node(parser_t *ps, enum node_type t) {
-  if (!ps) return NULL;
+  if (!ps)
+    return NULL;
   if (ps->node_count >= 2048) {
     parser_err(ps, "expression too complex");
     return NULL;
@@ -465,13 +504,16 @@ static node_t *ps_new_node(parser_t *ps, enum node_type t) {
 }
 
 static bool ps_expect(parser_t *ps, enum tok_type t, const char *msg) {
-  if (!ps) return false;
-  if (ps->cur.t != t) return parser_err(ps, msg);
+  if (!ps)
+    return false;
+  if (ps->cur.t != t)
+    return parser_err(ps, msg);
   return ps_next(ps);
 }
 
 static bool ps_parse_operand(parser_t *ps, operand_t *out) {
-  if (!ps || !out) return false;
+  if (!ps || !out)
+    return false;
   memset(out, 0, sizeof(*out));
 
   if (ps->cur.t == TOK_FIELD) {
@@ -501,37 +543,41 @@ static bool ps_parse_operand(parser_t *ps, operand_t *out) {
 }
 
 static bool tok_is_cmp(enum tok_type t) {
-  return (t == TOK_EQ || t == TOK_NE || t == TOK_LT || t == TOK_LE || t == TOK_GT || t == TOK_GE);
+  return (t == TOK_EQ || t == TOK_NE || t == TOK_LT || t == TOK_LE ||
+          t == TOK_GT || t == TOK_GE);
 }
 
 static enum cmp_op tok_to_cmp(enum tok_type t) {
   switch (t) {
-    case TOK_EQ:
-      return CMP_EQ;
-    case TOK_NE:
-      return CMP_NE;
-    case TOK_LT:
-      return CMP_LT;
-    case TOK_LE:
-      return CMP_LE;
-    case TOK_GT:
-      return CMP_GT;
-    case TOK_GE:
-      return CMP_GE;
-    default:
-      return CMP_EQ;
+  case TOK_EQ:
+    return CMP_EQ;
+  case TOK_NE:
+    return CMP_NE;
+  case TOK_LT:
+    return CMP_LT;
+  case TOK_LE:
+    return CMP_LE;
+  case TOK_GT:
+    return CMP_GT;
+  case TOK_GE:
+    return CMP_GE;
+  default:
+    return CMP_EQ;
   }
 }
 
 static node_t *ps_parse_expr(parser_t *ps);
 
 static node_t *ps_parse_primary(parser_t *ps) {
-  if (!ps) return NULL;
+  if (!ps)
+    return NULL;
 
   if (ps->cur.t == TOK_LPAREN) {
-    if (!ps_next(ps)) return NULL;
+    if (!ps_next(ps))
+      return NULL;
     node_t *inner = ps_parse_expr(ps);
-    if (!inner) return NULL;
+    if (!inner)
+      return NULL;
     if (!ps_expect(ps, TOK_RPAREN, "missing ')'")) {
       node_free(inner);
       return NULL;
@@ -542,7 +588,8 @@ static node_t *ps_parse_primary(parser_t *ps) {
   /* comparison */
   operand_t l;
   operand_t r;
-  if (!ps_parse_operand(ps, &l)) return NULL;
+  if (!ps_parse_operand(ps, &l))
+    return NULL;
   if (!tok_is_cmp(ps->cur.t)) {
     operand_free(&l);
     parser_err(ps, "missing comparison operator");
@@ -571,11 +618,14 @@ static node_t *ps_parse_primary(parser_t *ps) {
 }
 
 static node_t *ps_parse_unary(parser_t *ps) {
-  if (!ps) return NULL;
+  if (!ps)
+    return NULL;
   if (ps->cur.t == TOK_NOT) {
-    if (!ps_next(ps)) return NULL;
+    if (!ps_next(ps))
+      return NULL;
     node_t *inner = ps_parse_unary(ps);
-    if (!inner) return NULL;
+    if (!inner)
+      return NULL;
     node_t *n = ps_new_node(ps, N_NOT);
     if (!n) {
       node_free(inner);
@@ -588,9 +638,11 @@ static node_t *ps_parse_unary(parser_t *ps) {
 }
 
 static node_t *ps_parse_and(parser_t *ps) {
-  if (!ps) return NULL;
+  if (!ps)
+    return NULL;
   node_t *left = ps_parse_unary(ps);
-  if (!left) return NULL;
+  if (!left)
+    return NULL;
   while (ps->cur.t == TOK_AND) {
     if (!ps_next(ps)) {
       node_free(left);
@@ -615,9 +667,11 @@ static node_t *ps_parse_and(parser_t *ps) {
 }
 
 static node_t *ps_parse_or(parser_t *ps) {
-  if (!ps) return NULL;
+  if (!ps)
+    return NULL;
   node_t *left = ps_parse_and(ps);
-  if (!left) return NULL;
+  if (!left)
+    return NULL;
   while (ps->cur.t == TOK_OR) {
     if (!ps_next(ps)) {
       node_free(left);
@@ -644,15 +698,18 @@ static node_t *ps_parse_or(parser_t *ps) {
 static node_t *ps_parse_expr(parser_t *ps) { return ps_parse_or(ps); }
 
 static node_t *filter_parse_expr(const char *expr, char err[256]) {
-  if (err) err[0] = '\0';
+  if (err)
+    err[0] = '\0';
   if (!expr || !*expr) {
-    if (err) snprintf(err, 256, "empty expression");
+    if (err)
+      snprintf(err, 256, "empty expression");
     return NULL;
   }
 
   size_t elen = strlen(expr);
   if (elen > 4096) {
-    if (err) snprintf(err, 256, "expression too long");
+    if (err)
+      snprintf(err, 256, "expression too long");
     return NULL;
   }
 
@@ -667,21 +724,24 @@ static node_t *filter_parse_expr(const char *expr, char err[256]) {
 
   /* prime */
   if (!ps_next(&ps)) {
-    if (err) snprintf(err, 256, "%s", ps.err[0] ? ps.err : "expression parse error");
+    if (err)
+      snprintf(err, 256, "%s", ps.err[0] ? ps.err : "expression parse error");
     tok_free(&ps.cur);
     return NULL;
   }
 
   node_t *root = ps_parse_expr(&ps);
   if (!root) {
-    if (err) snprintf(err, 256, "%s", ps.err[0] ? ps.err : "expression parse error");
+    if (err)
+      snprintf(err, 256, "%s", ps.err[0] ? ps.err : "expression parse error");
     tok_free(&ps.cur);
     return NULL;
   }
 
   if (ps.cur.t != TOK_EOF) {
     node_free(root);
-    if (err) snprintf(err, 256, "unexpected token");
+    if (err)
+      snprintf(err, 256, "unexpected token");
     tok_free(&ps.cur);
     return NULL;
   }
@@ -700,50 +760,55 @@ typedef struct {
 static bool eval_operand_view(const operand_t *o, const uint8_t **p, size_t *n,
                               eval_ctx_t *ctx) {
   (void)ctx;
-  if (!o || !p || !n) return false;
+  if (!o || !p || !n)
+    return false;
   *p = (const uint8_t *)"";
   *n = 0;
   switch (o->t) {
-    case OP_FIELD: {
-      uint64_t idx = o->field_idx;
-      if (idx == 0) {
-        *p = (const uint8_t *)"";
-        *n = 0;
-        return true;
-      }
-      size_t z = (size_t)(idx - 1);
-      if (!ctx || z >= ctx->field_count) {
-        *p = (const uint8_t *)"";
-        *n = 0;
-        return true;
-      }
-      *p = ctx->fields[z].ptr;
-      *n = ctx->fields[z].len;
+  case OP_FIELD: {
+    uint64_t idx = o->field_idx;
+    if (idx == 0) {
+      *p = (const uint8_t *)"";
+      *n = 0;
       return true;
     }
-    case OP_INT:
-      *p = (const uint8_t *)o->s;
-      *n = o->slen;
+    size_t z = (size_t)(idx - 1);
+    if (!ctx || z >= ctx->field_count) {
+      *p = (const uint8_t *)"";
+      *n = 0;
       return true;
-    case OP_STR:
-      *p = (const uint8_t *)o->s;
-      *n = o->slen;
-      return true;
-    default:
-      return false;
+    }
+    *p = ctx->fields[z].ptr;
+    *n = ctx->fields[z].len;
+    return true;
+  }
+  case OP_INT:
+    *p = (const uint8_t *)o->s;
+    *n = o->slen;
+    return true;
+  case OP_STR:
+    *p = (const uint8_t *)o->s;
+    *n = o->slen;
+    return true;
+  default:
+    return false;
   }
 }
 
 static bool eval_cmp(const node_t *n, eval_ctx_t *ctx, bool *exec_limit) {
-  if (exec_limit) *exec_limit = false;
-  if (!n || !ctx || !exec_limit) return false;
+  if (exec_limit)
+    *exec_limit = false;
+  if (!n || !ctx || !exec_limit)
+    return false;
 
   const uint8_t *lp = NULL;
   size_t ln = 0;
   const uint8_t *rp = NULL;
   size_t rn = 0;
-  if (!eval_operand_view(&n->l, &lp, &ln, ctx)) return false;
-  if (!eval_operand_view(&n->r, &rp, &rn, ctx)) return false;
+  if (!eval_operand_view(&n->l, &lp, &ln, ctx))
+    return false;
+  if (!eval_operand_view(&n->r, &rp, &rn, ctx))
+    return false;
 
   int64_t li = 0;
   int64_t ri = 0;
@@ -752,43 +817,45 @@ static bool eval_cmp(const node_t *n, eval_ctx_t *ctx, bool *exec_limit) {
 
   if (lnum && rnum) {
     switch (n->cop) {
-      case CMP_EQ:
-        return li == ri;
-      case CMP_NE:
-        return li != ri;
-      case CMP_LT:
-        return li < ri;
-      case CMP_LE:
-        return li <= ri;
-      case CMP_GT:
-        return li > ri;
-      case CMP_GE:
-        return li >= ri;
+    case CMP_EQ:
+      return li == ri;
+    case CMP_NE:
+      return li != ri;
+    case CMP_LT:
+      return li < ri;
+    case CMP_LE:
+      return li <= ri;
+    case CMP_GT:
+      return li > ri;
+    case CMP_GE:
+      return li >= ri;
     }
     return false;
   }
 
   int c = bytes_cmp(lp, ln, rp, rn);
   switch (n->cop) {
-    case CMP_EQ:
-      return c == 0;
-    case CMP_NE:
-      return c != 0;
-    case CMP_LT:
-      return c < 0;
-    case CMP_LE:
-      return c <= 0;
-    case CMP_GT:
-      return c > 0;
-    case CMP_GE:
-      return c >= 0;
+  case CMP_EQ:
+    return c == 0;
+  case CMP_NE:
+    return c != 0;
+  case CMP_LT:
+    return c < 0;
+  case CMP_LE:
+    return c <= 0;
+  case CMP_GT:
+    return c > 0;
+  case CMP_GE:
+    return c >= 0;
   }
   return false;
 }
 
 static bool eval_bool(const node_t *n, eval_ctx_t *ctx, bool *exec_limit) {
-  if (exec_limit) *exec_limit = false;
-  if (!n || !ctx || !exec_limit) return false;
+  if (exec_limit)
+    *exec_limit = false;
+  if (!n || !ctx || !exec_limit)
+    return false;
 
   ctx->steps++;
   if (ctx->steps > ctx->step_limit) {
@@ -797,49 +864,51 @@ static bool eval_bool(const node_t *n, eval_ctx_t *ctx, bool *exec_limit) {
   }
 
   switch (n->t) {
-    case N_CMP:
-      return eval_cmp(n, ctx, exec_limit);
-    case N_NOT: {
-      bool lim = false;
-      bool v = eval_bool(n->a, ctx, &lim);
-      if (lim) {
-        *exec_limit = true;
-        return false;
-      }
-      return !v;
-    }
-    case N_AND: {
-      bool lim = false;
-      bool lv = eval_bool(n->a, ctx, &lim);
-      if (lim) {
-        *exec_limit = true;
-        return false;
-      }
-      if (!lv) return false;
-      bool rv = eval_bool(n->b, ctx, &lim);
-      if (lim) {
-        *exec_limit = true;
-        return false;
-      }
-      return rv;
-    }
-    case N_OR: {
-      bool lim = false;
-      bool lv = eval_bool(n->a, ctx, &lim);
-      if (lim) {
-        *exec_limit = true;
-        return false;
-      }
-      if (lv) return true;
-      bool rv = eval_bool(n->b, ctx, &lim);
-      if (lim) {
-        *exec_limit = true;
-        return false;
-      }
-      return rv;
-    }
-    default:
+  case N_CMP:
+    return eval_cmp(n, ctx, exec_limit);
+  case N_NOT: {
+    bool lim = false;
+    bool v = eval_bool(n->a, ctx, &lim);
+    if (lim) {
+      *exec_limit = true;
       return false;
+    }
+    return !v;
+  }
+  case N_AND: {
+    bool lim = false;
+    bool lv = eval_bool(n->a, ctx, &lim);
+    if (lim) {
+      *exec_limit = true;
+      return false;
+    }
+    if (!lv)
+      return false;
+    bool rv = eval_bool(n->b, ctx, &lim);
+    if (lim) {
+      *exec_limit = true;
+      return false;
+    }
+    return rv;
+  }
+  case N_OR: {
+    bool lim = false;
+    bool lv = eval_bool(n->a, ctx, &lim);
+    if (lim) {
+      *exec_limit = true;
+      return false;
+    }
+    if (lv)
+      return true;
+    bool rv = eval_bool(n->b, ctx, &lim);
+    if (lim) {
+      *exec_limit = true;
+      return false;
+    }
+    return rv;
+  }
+  default:
+    return false;
   }
 }
 
@@ -848,12 +917,15 @@ static bool eval_bool(const node_t *n, eval_ctx_t *ctx, bool *exec_limit) {
  * =============================================================================
  */
 
-static int filter_main(const char *expr, char *const *files, size_t file_count) {
+static int filter_main(const char *expr, char *const *files,
+                       size_t file_count) {
   char perr[256];
   node_t *ast = filter_parse_expr(expr, perr);
   if (!ast) {
-    if (perr[0]) fprintf(stderr, "filter: %s\n", perr);
-    else fprintf(stderr, "filter: expression parse error\n");
+    if (perr[0])
+      fprintf(stderr, "filter: %s\n", perr);
+    else
+      fprintf(stderr, "filter: expression parse error\n");
     return 2;
   }
 
@@ -881,7 +953,8 @@ static int filter_main(const char *expr, char *const *files, size_t file_count) 
 
     /* Exclude trailing '\n' from field content */
     size_t subj_len = v.len;
-    if (v.ends_with_nl && subj_len > 0) subj_len--;
+    if (v.ends_with_nl && subj_len > 0)
+      subj_len--;
 
     dc_field_view_t *fields = NULL;
     size_t fcnt = dc_split_delim(v.ptr, subj_len, delim, &fields);
@@ -943,8 +1016,7 @@ Parsing rules (Diamond style):
 - Any other -x token is an error unless after --, or token is exactly '-'.
 - EXPR is required and is the first non-option token.
 */
-__attribute__((visibility("default")))
-int filter_builtin(WORD_LIST *list) {
+__attribute__((visibility("default"))) int filter_builtin(WORD_LIST *list) {
   // === ANCHOR:SIGPIPE-BEGIN ===
   void (*old_sigpipe)(int) = signal(SIGPIPE, SIG_IGN);
   // === ANCHOR:SIGPIPE-END ===
@@ -963,7 +1035,8 @@ int filter_builtin(WORD_LIST *list) {
   int rc = 2;
   for (WORD_LIST *w = list; w; w = w->next) {
     const char *tok = w->word->word;
-    if (!tok) tok = "";
+    if (!tok)
+      tok = "";
 
     if (!expr) {
       if (!end_opts && strcmp(tok, "--help") == 0) {
@@ -974,7 +1047,8 @@ int filter_builtin(WORD_LIST *list) {
         end_opts = true;
         continue;
       }
-      if (!end_opts && tok[0] == '-' && tok[1] != '\0' && strcmp(tok, "-") != 0) {
+      if (!end_opts && tok[0] == '-' && tok[1] != '\0' &&
+          strcmp(tok, "-") != 0) {
         rc = filter_usage_err("unknown option (use --help)");
         goto out;
       }
@@ -1017,12 +1091,11 @@ out:
   return rc;
 }
 
-__attribute__((visibility("default")))
-struct builtin filter_struct = {
-  .name = "filter",
-  .function = filter_builtin,
-  .flags = BUILTIN_ENABLED,
-  .long_doc = filter_doc,
-  .short_doc = (char *)"filter EXPR [--] [FILE...]",
-  .handle = 0,
+__attribute__((visibility("default"))) struct builtin filter_struct = {
+    .name = "filter",
+    .function = filter_builtin,
+    .flags = BUILTIN_ENABLED,
+    .long_doc = filter_doc,
+    .short_doc = (char *)"filter EXPR [--] [FILE...]",
+    .handle = 0,
 };
