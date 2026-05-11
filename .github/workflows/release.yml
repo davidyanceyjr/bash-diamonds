@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      verify_failure_test:
+        description: 'Corrupt the generated tarball before checksum verification'
+        required: false
+        default: 'false'
 
 jobs:
   release:
@@ -27,6 +33,18 @@ jobs:
           set -euxo pipefail
           test -d /usr/include/bash
           make dist BASH_SRC=/usr/include/bash
+
+      - name: Corrupt tarball for checksum failure test
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.verify_failure_test == 'true' }}
+        run: |
+          set -euxo pipefail
+          printf 'corrupt\n' >> build/release/*.tar.gz
+
+      - name: Verify release checksum
+        run: |
+          set -euxo pipefail
+          cd build/release
+          sha256sum -c ./*.sha256
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
