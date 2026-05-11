@@ -22,13 +22,40 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             bats \
             bash-builtins \
-            build-essential
+            build-essential \
+            clang-format \
+            shellcheck
 
-      - name: Detect bash headers
+      - name: Run ShellCheck
+        run: |
+          set -euo pipefail
+          mapfile -t shell_files < <(git ls-files '*.sh')
+          if ((${#shell_files[@]})); then
+            shellcheck "${shell_files[@]}"
+          else
+            echo "No tracked shell scripts found"
+          fi
+
+      - name: Run format check
+        run: make format-check
+
+      - name: Run conformance tests
         run: |
           set -euxo pipefail
           test -d /usr/include/bash
-          echo "BASH_SRC=/usr/include/bash" >> "$GITHUB_ENV"
+          make test BASH_SRC=/usr/include/bash
 
-      - name: Run conformance tests
-        run: make test BASH_SRC="${BASH_SRC}"
+      - name: Build release bundle
+        run: |
+          set -euxo pipefail
+          test -d /usr/include/bash
+          make dist BASH_SRC=/usr/include/bash
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: |
+            build/release/*.tar.gz
+            build/release/*.sha256
+          if-no-files-found: error
