@@ -11,6 +11,9 @@ on:
         required: false
         default: 'false'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: release
@@ -53,3 +56,14 @@ jobs:
             build/release/*.tar.gz
             build/release/*.sha256
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            build/release/*.tar.gz \
+            build/release/*.sha256 \
+            --title "$GITHUB_REF_NAME"
