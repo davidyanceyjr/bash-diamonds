@@ -13,6 +13,7 @@ DIST_SHA256 := $(DIST_TARBALL).sha256
 CC   ?= cc
 BASH ?= bash
 CLANG_FORMAT ?= clang-format
+CPPCHECK ?= cppcheck
 
 # Point at a Bash source tree for headers (recommended)
 # Override: make BASH_SRC=/home/opsman/bash
@@ -49,7 +50,7 @@ CORE_REL_OBJS := $(patsubst $(SRC_DIR)/diamondcore/%.c,$(REL_OBJDIR)/core/%.o,$(
 # All C/C++ headers and sources under src/
 FORMAT_SRCS := $(shell find $(SRC_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-.PHONY: all debug rel dist dist-clean clean test list-builtins format format-check
+.PHONY: all debug rel dist dist-clean clean test list-builtins format format-check cppcheck lint-c
 
 all: debug
 
@@ -110,6 +111,21 @@ format:
 format-check:
 	@echo "Checking formatting..."
 	@$(CLANG_FORMAT) --dry-run --Werror $(FORMAT_SRCS)
+
+cppcheck:
+	@echo "Running cppcheck..."
+	@$(CPPCHECK) \
+		--quiet \
+		--error-exitcode=2 \
+		--language=c \
+		--std=c11 \
+		--enable=warning,performance,portability \
+		--suppress=missingIncludeSystem \
+		-I$(INCLUDE_DIR) \
+		-I$(SRC_DIR)/builtins \
+		$(SRC_DIR)
+
+lint-c: cppcheck
 
 # -----------------------------
 

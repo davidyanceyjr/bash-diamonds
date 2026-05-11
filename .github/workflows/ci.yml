@@ -7,8 +7,8 @@ on:
   pull_request:
 
 jobs:
-  conformance:
-    name: Build and Test
+  lint:
+    name: lint
     runs-on: ubuntu-latest
 
     steps:
@@ -20,9 +20,6 @@ jobs:
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            bats \
-            bash-builtins \
-            build-essential \
             clang-format \
             shellcheck
 
@@ -39,11 +36,66 @@ jobs:
       - name: Run format check
         run: make format-check
 
-      - name: Run conformance tests
+  static-analysis:
+    name: static-analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cppcheck
+
+      - name: Run cppcheck
+        run: make cppcheck
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bats \
+            bash-builtins \
+            build-essential
+
+      - name: Run tests
         run: |
           set -euxo pipefail
           test -d /usr/include/bash
           make test BASH_SRC=/usr/include/bash
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - static-analysis
+      - test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bash-builtins \
+            build-essential
 
       - name: Build release bundle
         run: |

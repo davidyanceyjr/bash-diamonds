@@ -40,6 +40,13 @@ bash_with_lines() {
   [ "$status" -eq 2 ]
 }
 
+@test "lines: usage error on bare open-start range" {
+  printf "a\nb\n" >"$F1"
+
+  run bash_with_lines "lines .. '$F1'"
+  [ "$status" -eq 2 ]
+}
+
 @test "lines: select single line" {
   printf "a\nb\nc\n" >"$F1"
 

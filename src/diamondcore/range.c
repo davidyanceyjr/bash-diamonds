@@ -51,6 +51,11 @@ static bool add_range(dc_sel_t *sel, uint64_t a, uint64_t b, dc_error_t *err) {
  * - must fit uint64_t
  */
 static bool parse_uint_strict(const char **p, uint64_t *out, dc_error_t *err) {
+  if (!p || !*p) {
+    dc_err_set(err, DC_ERR_USAGE, "lines: invalid SPEC");
+    return false;
+  }
+
   const char *s = *p;
   if (!s || !*s) {
     dc_err_set(err, DC_ERR_USAGE, "lines: invalid SPEC");
@@ -83,6 +88,8 @@ static bool parse_uint_strict(const char **p, uint64_t *out, dc_error_t *err) {
 }
 
 static bool match_dots(const char **p) {
+  if (!p || !*p) return false;
+
   const char *s = *p;
   if (s && s[0] == '.' && s[1] == '.') {
     *p = s + 2;
