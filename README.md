@@ -58,6 +58,10 @@ Artifacts are written to `build/release/`:
 - `diamonds-<version>.tar.gz.sha256`
 Bundle contents include release `.so` builtins, `docs/`, and this `README.md`.
 
+For version tags matching `v*.*.*`, the repository's GitHub `Release` workflow
+publishes a GitHub Release with these same `.tar.gz` and `.sha256` files as
+downloadable assets.
+
 ## User Install (No Root)
 
 From a repository clone (after `make rel`):
@@ -65,6 +69,9 @@ From a repository clone (after `make rel`):
 ```sh
 ./scripts/install-user.sh --source ./build
 ```
+
+For released versions, download and extract the release tarball from the
+repository's GitHub Releases page, then run:
 
 From an extracted release tarball root:
 

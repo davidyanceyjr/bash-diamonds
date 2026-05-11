@@ -33,6 +33,9 @@ From a repository clone (after `make rel`):
 ./scripts/install-user.sh --source ./build
 ```
 
+For released versions, download and extract the release tarball published on
+the repository's GitHub Releases page.
+
 From a release tarball root:
 
 ```bash
