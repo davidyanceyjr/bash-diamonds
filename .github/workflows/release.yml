@@ -43,8 +43,7 @@ jobs:
       - name: Verify release checksum
         run: |
           set -euxo pipefail
-          cd build/release
-          sha256sum -c ./*.sha256
+          sha256sum -c build/release/*.sha256
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
