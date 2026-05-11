@@ -12,4 +12,7 @@
 *.gz
 *.tar
 .codex/
+.skills/
+AGENTS.md
+progress.yaml
 stopped*note
