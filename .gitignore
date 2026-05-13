@@ -7,12 +7,6 @@
 *.swp
 *.swo
 *.snap
-*.prompt
 .DS_Store
 *.gz
 *.tar
-.codex/
-.skills/
-AGENTS.md
-progress.yaml
-stopped*note
